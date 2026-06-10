@@ -8,6 +8,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.function.Consumer;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -23,12 +24,20 @@ import dev.argusgraph.ingest.worker.application.OsvSource;
  * ({@code <base>/<ecosystem>/all.zip}, one JSON document per zip entry) straight off the
  * response body — nothing is written to disk and only one document is in memory at a
  * time. The base URL is configurable so tests never touch the live bucket.
+ *
+ * <p>
+ * Timeouts guard the single worker thread: 30 s to connect, 10 min to response headers.
+ * A stall mid-stream is not bounded by these — acceptable for now, the job is manually
+ * re-triggerable and consumption is idempotent.
  */
 @Component
 @Slf4j
 class OsvHttpSource implements OsvSource {
 
-	private final HttpClient http = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
+	private final HttpClient http = HttpClient.newBuilder()
+		.followRedirects(HttpClient.Redirect.NORMAL)
+		.connectTimeout(Duration.ofSeconds(30))
+		.build();
 
 	private final String baseUrl;
 
@@ -41,7 +50,7 @@ class OsvHttpSource implements OsvSource {
 		// Ecosystem names may contain spaces (e.g. "Rocky Linux") — encode just those.
 		URI uri = URI.create(this.baseUrl + "/" + ecosystem.replace(" ", "%20") + "/all.zip");
 		log.info("Downloading OSV dump: {}", uri);
-		HttpRequest request = HttpRequest.newBuilder(uri).GET().build();
+		HttpRequest request = HttpRequest.newBuilder(uri).GET().timeout(Duration.ofMinutes(10)).build();
 		try {
 			HttpResponse<InputStream> response = this.http.send(request, HttpResponse.BodyHandlers.ofInputStream());
 			if (response.statusCode() != 200) {

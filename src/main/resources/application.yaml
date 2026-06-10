@@ -79,3 +79,11 @@ logging:
     root: INFO
     dev.argusgraph: DEBUG
     org.springframework: INFO
+
+# ── Ingest worker ─────────────────────────────────────────────────────────────
+# OSV dump source for the fetch worker (POST /ingest/jobs/osv). Override in tests
+# or to point at a mirror; the default is the public OSV GCS bucket.
+argus:
+  ingest:
+    osv:
+      base-url: ${OSV_BASE_URL:https://osv-vulnerabilities.storage.googleapis.com}

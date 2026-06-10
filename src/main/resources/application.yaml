@@ -1,0 +1,62 @@
+spring:
+  application:
+    name: argusgraph
+
+  # RFC 9457 problem+json error bodies (see GlobalExceptionHandler).
+  mvc:
+    problemdetails:
+      enabled: true
+
+  # ── Neo4j ────────────────────────────────────────────────────────────────────
+  # Everything is env-driven with localhost defaults so it runs out of the box
+  # against the `neo4j` service in compose.yaml. Uniqueness constraints are
+  # created at startup by the graph module's GraphSchemaInitializer.
+  neo4j:
+    uri: ${NEO4J_URI:bolt://localhost:7687}
+    authentication:
+      username: ${NEO4J_USERNAME:neo4j}
+      password: ${NEO4J_PASSWORD:argusgraph-dev}
+
+  # We start compose manually; don't let Spring auto-manage it.
+  docker:
+    compose:
+      enabled: false
+
+# ── App config (bound to AppProperties) ───────────────────────────────────────
+app:
+  base-url: ${BASE_URL:http://localhost:8080}
+
+# ── Server ─────────────────────────────────────────────────────────────────────
+server:
+  port: 8080
+  shutdown: graceful
+  servlet:
+    context-path: /api/v1
+
+# ── Actuator ─────────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+# ── OpenAPI / Swagger UI ──────────────────────────────────────────────────────
+# Swagger UI:  http://localhost:8080/api/v1/swagger-ui.html
+# OpenAPI doc: http://localhost:8080/api/v1/v3/api-docs
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+  api-docs:
+    path: /v3/api-docs
+
+# ── Logging ─────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    dev.argusgraph: DEBUG
+    org.springframework: INFO

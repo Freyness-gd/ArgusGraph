@@ -1,0 +1,12 @@
+# Local development profile. Activate with SPRING_PROFILES_ACTIVE=dev.
+# Defaults line up with the `neo4j` service in compose.yaml and .env.example.
+spring:
+  neo4j:
+    uri: bolt://localhost:7687
+    authentication:
+      username: neo4j
+      password: argusgraph-dev
+
+logging:
+  level:
+    org.springframework.data.neo4j.cypher: DEBUG   # log generated Cypher locally

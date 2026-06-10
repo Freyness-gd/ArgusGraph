@@ -1,0 +1,19 @@
+meta {
+  name: Link Dependency
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/ingest/dependencies
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "fromPurl": "pkg:maven/dev.argusgraph/demo-app@1.0.0",
+    "toPurl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1",
+    "scope": "compile"
+  }
+}

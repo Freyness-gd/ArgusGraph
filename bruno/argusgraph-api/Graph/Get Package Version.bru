@@ -1,0 +1,15 @@
+meta {
+  name: Get Package Version
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/graph/package-versions?purl=pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1
+  body: none
+  auth: none
+}
+
+params:query {
+  purl: pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1
+}

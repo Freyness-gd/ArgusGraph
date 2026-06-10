@@ -1,0 +1,18 @@
+meta {
+  name: Link Affects
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/ingest/affects
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "vulnerabilityId": "GHSA-jfh8-c2jp-5v3q",
+    "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"
+  }
+}

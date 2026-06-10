@@ -1,0 +1,23 @@
+docs {
+  # ArgusGraph API
+
+  Typed ingestion into the CVE knowledge graph + graph reads. Context path is `/api/v1`
+  (set in `application.yaml`), so `{{baseUrl}}` already includes it.
+
+  ## Quickstart
+
+  1. Pick the **Local** environment (top-right).
+  2. Start infra + app: `docker compose --profile app up --build` (or run the app from your IDE).
+  3. Run the **Ingest** requests top to bottom — they walk the Log4Shell example:
+     log4j-core 2.14.1, a demo app depending on it, and CVE-2021-44228 affecting it.
+  4. Run **Graph / Get Package Version** to read the neighbourhood back.
+
+  All ingest endpoints are idempotent upserts — re-running them is safe.
+
+  Security is OPEN by default (prototype), so no auth header is needed. When you enable JWT
+  in `SecurityConfig`, add a bearer token at the collection level here.
+}
+
+vars {
+  baseUrl: http://localhost:8080/api/v1
+}

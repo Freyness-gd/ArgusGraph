@@ -1,0 +1,17 @@
+meta {
+  name: Upsert Dependent App
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/ingest/package-versions
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "purl": "pkg:maven/dev.argusgraph/demo-app@1.0.0"
+  }
+}

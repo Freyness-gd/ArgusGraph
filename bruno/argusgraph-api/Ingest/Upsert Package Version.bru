@@ -1,0 +1,17 @@
+meta {
+  name: Upsert Package Version
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/ingest/package-versions
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "purl": "pkg:maven/org.apache.logging.log4j/log4j-core@2.14.1"
+  }
+}

@@ -1,6 +1,7 @@
 package dev.argusgraph.ingest.worker.api;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
@@ -35,7 +36,8 @@ public class IngestJobController {
 	@PostMapping("/osv")
 	@ResponseStatus(HttpStatus.ACCEPTED)
 	@Operation(summary = "Fetch one OSV ecosystem dump and queue every document for ingestion")
-	public void startOsvFetch(@RequestParam @NotBlank String ecosystem) {
+	public void startOsvFetch(@RequestParam @NotBlank(message = "ecosystem is required") @Parameter(
+			description = "OSV ecosystem name (dump directory in the OSV bucket)", example = "Maven") String ecosystem) {
 		this.osvFetchJob.runOsv(ecosystem);
 	}
 

@@ -4,6 +4,7 @@
 ![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.1.0--RC1-6DB33F?logo=springboot&logoColor=white)
 ![Spring Modulith](https://img.shields.io/badge/Spring%20Modulith-2.1.0--RC1-6DB33F?logo=spring&logoColor=white)
 ![Neo4j](https://img.shields.io/badge/Neo4j-5%20Community-018BFF?logo=neo4j&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4.3-FF6600?logo=rabbitmq&logoColor=white)
 ![REST](https://img.shields.io/badge/API-REST%20%2F%20OpenAPI%203-009688)
 
 **Knowledge-graph-based software supply chain analysis.** ArgusGraph ingests
@@ -11,9 +12,11 @@ vulnerability and dependency data from public sources (CVE, NVD, OSV, GitHub Adv
 Database, deps.dev) into a Neo4j knowledge graph, so that transitive vulnerability
 exposure — the kind naïve "direct dependency" scanners miss — becomes a graph traversal.
 
-Current state: **skeleton** — a working pipeline end: typed input goes in over REST and
-comes out as a graph. Scraper workers, SBOM upload, the embedding pipeline, and the
-logic-based inference engine come next (see [`.planning/ROADMAP.md`](.planning/ROADMAP.md)).
+Current state: **skeleton + async ingestion** — typed input goes in over REST and comes
+out as a graph, and an OSV fetch worker streams ecosystem dumps through RabbitMQ into
+the same pipeline. More sources (NVD/GHSA/deps.dev), SBOM upload, the embedding
+pipeline, and the logic-based inference engine come next
+(see [`.planning/ROADMAP.md`](.planning/ROADMAP.md)).
 
 ---
 
@@ -41,7 +44,7 @@ dev.argusgraph
 ├── app/      # Bootstrap + cross-cutting: security, error handling, OpenAPI, config
 ├── shared/   # Tiny shared kernel (common exceptions)
 ├── graph/    # KG core — domain types, GraphAPI contract, Cypher persistence, read API
-└── ingest/   # Input adapters — typed REST now, scraper workers (OSV/NVD/GHSA) later
+└── ingest/   # Input adapters — typed REST + worker pipeline (fetch → RabbitMQ → graph)
 ```
 
 Spring Boot modular monolith (Spring Modulith + jMolecules). The ingest module talks to
@@ -56,6 +59,7 @@ time (Checkstyle ImportControl) and test time (`ModulithTests`).
 | `POST /ingest/vulnerabilities`      | Upsert a vulnerability by advisory id              |
 | `POST /ingest/dependencies`         | Record `DEPENDS_ON` between two package versions   |
 | `POST /ingest/affects`              | Record `AFFECTS` from a vulnerability to a version |
+| `POST /ingest/jobs/osv?ecosystem=`  | Fetch an OSV ecosystem dump async via RabbitMQ (202/429) |
 | `GET  /graph/package-versions?purl=`| A version + direct dependencies + known vulns      |
 
 Everything lives under the `/api/v1` context path. Errors are RFC 9457 `problem+json`:
@@ -77,7 +81,7 @@ auto-started Neo4j Testcontainer — no `.env`, no `docker compose`.
 
 ```bash
 cp .env.example .env
-docker compose up -d            # Neo4j only (browser UI on http://localhost:7474)
+docker compose up -d            # Neo4j + RabbitMQ (UIs on :7474 / :15672)
 ./gradlew bootRun               # app on http://localhost:8080
 curl http://localhost:8080/api/v1/actuator/health
 ```
@@ -113,6 +117,7 @@ curl "http://localhost:8080/api/v1/graph/package-versions?purl=pkg:maven/org.apa
 
 - **Swagger UI** → http://localhost:8080/api/v1/swagger-ui.html
 - **Neo4j browser** → http://localhost:7474 (credentials from `.env`)
+- **RabbitMQ management UI** → http://localhost:15672 (credentials from `.env`)
 - **Bruno collection** → [`bruno/argusgraph-api`](bruno/argusgraph-api)
 
 ---
@@ -125,9 +130,10 @@ curl "http://localhost:8080/api/v1/graph/package-versions?purl=pkg:maven/org.apa
 | Architecture  | jMolecules (DDD + layered annotations), modular monolith              |
 | API           | Spring Web MVC (REST), springdoc OpenAPI 3                            |
 | Graph store   | Neo4j 5 Community, Spring Data Neo4j (`Neo4jClient` + explicit Cypher) |
+| Messaging     | RabbitMQ 4 (AMQP 0-9-1), Spring AMQP — async source-ingestion pipeline |
 | Purl parsing  | packageurl-java                                                       |
 | Security      | Spring Security — **open by default**, JWT resource-server ready      |
-| Testing       | JUnit 5, AssertJ, Testcontainers (Neo4j), Spring Modulith test        |
+| Testing       | JUnit 5, AssertJ, Testcontainers (Neo4j, RabbitMQ), Spring Modulith test |
 | Code quality  | Checkstyle (module-boundary ImportControl, non-blocking), JaCoCo      |
 | Build         | Gradle 9.4 (Kotlin DSL), version catalog, dependency locking, JDK 25  |
 

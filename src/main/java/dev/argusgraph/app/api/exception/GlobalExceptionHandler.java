@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -45,6 +46,20 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 	public ProblemDetail handleBusinessRule(BusinessRuleException ex) {
 		ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
 		pd.setTitle("Business Rule Violation");
+		return pd;
+	}
+
+	/**
+	 * 400 — Jakarta Bean Validation failures on {@code @Validated} method parameters
+	 * (e.g. {@code @NotBlank} on a {@code @RequestParam}). Spring raises
+	 * {@link ConstraintViolationException} for these, not
+	 * {@link MethodArgumentNotValidException}.
+	 */
+	@ExceptionHandler(ConstraintViolationException.class)
+	public ProblemDetail handleConstraintViolation(ConstraintViolationException ex) {
+		ProblemDetail pd = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST,
+				"One or more request parameters have validation errors.");
+		pd.setTitle("Validation Failed");
 		return pd;
 	}
 

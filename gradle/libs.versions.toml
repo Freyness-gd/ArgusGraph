@@ -1,0 +1,31 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Gradle Version Catalog — single source of truth for all dependency versions.
+#
+# Only BOMs and plugin/toolchain versions live here. Non-BOM dependencies are
+# declared as plain strings in build.gradle.kts. Spring Boot/Modulith track the
+# 4.1.0 RC line, so settings.gradle.kts enables the Spring milestone repository.
+# Drop both to a GA release when 4.1.0 ships.
+# ─────────────────────────────────────────────────────────────────────────────
+
+[versions]
+java = "25"
+springBoot = "4.1.0-RC1"
+springModulith = "2.1.0-RC1"
+jmolecules = "2025.0.2"
+testcontainers = "2.0.4"
+springDoc = "3.0.3"
+checkstyle = "13.0.0"
+packageUrl = "1.5.0"
+cvssCalculator = "1.4.2"
+
+# ── BOMs ──────────────────────────────────────────────────────────────────────
+[libraries]
+spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "springBoot" }
+spring-modulith-bom = { module = "org.springframework.modulith:spring-modulith-bom", version.ref = "springModulith" }
+jmolecules-bom = { module = "org.jmolecules:jmolecules-bom", version.ref = "jmolecules" }
+testcontainers-bom = { module = "org.testcontainers:testcontainers-bom", version.ref = "testcontainers" }
+
+# ── Plugins ───────────────────────────────────────────────────────────────────
+[plugins]
+spring-boot = { id = "org.springframework.boot", version.ref = "springBoot" }
+# io.spring.dependency-management intentionally omitted — replaced by platform() BOM import.

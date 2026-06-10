@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE import-control PUBLIC
+  "-//Checkstyle//DTD ImportControl Configuration 1.4//EN"
+  "https://checkstyle.org/dtds/import_control_1_4.dtd">
+
+<!--
+	Module-boundary enforcement for the modular monolith.
+
+	Rules of thumb:
+	  - A module's root-package types (the domain types + its published *API contract)
+	    are the ONLY things importable from another module.
+	  - api/, application/, and infrastructure/ subpackages are module-private.
+	  - Cross-module calls go through the published *API interface, never internals.
+
+	This is the single file you edit when adding a module: add a <subpackage> block
+	for it, and `allow` the specific cross-module *API types it may call.
+-->
+<import-control pkg="dev.argusgraph">
+
+  <allow pkg="java"/>
+  <allow pkg="javax"/>
+  <allow pkg="jakarta"/>
+  <allow pkg="org"/>
+  <allow pkg="com"/>
+  <allow pkg="io"/>
+  <allow pkg="lombok"/>
+  <allow pkg="us.springett"/>
+  <allow pkg="tools.jackson"/>
+  <!-- Shared kernel: tiny, dependency-free helpers usable everywhere. -->
+  <allow pkg="dev.argusgraph.shared"/>
+
+  <!-- Cross-cutting bootstrap + infrastructure. Should not reach into module internals. -->
+  <subpackage name="app">
+    <allow pkg="dev.argusgraph.app"/>
+  </subpackage>
+
+  <!-- Knowledge-graph core: nodes, relationships, Neo4j persistence. Depends on no other module. -->
+  <subpackage name="graph">
+    <allow pkg="dev.argusgraph.graph"/>
+    <disallow pkg="dev.argusgraph.ingest"/>
+  </subpackage>
+
+  <!-- Input adapters (REST now, scraper workers later). Talks to graph ONLY via GraphAPI. -->
+  <subpackage name="ingest">
+    <allow pkg="dev.argusgraph.ingest"/>
+    <allow class="dev.argusgraph.graph.GraphAPI"/>
+    <allow class="dev.argusgraph.graph.Purl"/>
+    <!-- graph internals stay off-limits — the contract is the only door. -->
+    <disallow pkg="dev.argusgraph.graph.api"/>
+    <disallow pkg="dev.argusgraph.graph.application"/>
+    <disallow pkg="dev.argusgraph.graph.infrastructure"/>
+  </subpackage>
+
+</import-control>

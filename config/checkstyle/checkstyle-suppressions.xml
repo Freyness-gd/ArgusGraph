@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!DOCTYPE suppressions PUBLIC
+		"-//Checkstyle//DTD SuppressionFilter Configuration 1.2//EN"
+		"https://checkstyle.org/dtds/suppressions_1_2.dtd">
+<suppressions>
+	<!-- ImportControl only governs production module boundaries; tests may cross them. -->
+	<suppress checks="ImportControl" files="[\\/]src[\\/]test[\\/]"/>
+	<!-- package-info files are pure annotations/markers. -->
+	<suppress checks="JavadocPackage" files="package-info\.java"/>
+</suppressions>

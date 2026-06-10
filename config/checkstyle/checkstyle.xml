@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<!DOCTYPE module PUBLIC
+		"-//Checkstyle//DTD Checkstyle Configuration 1.3//EN"
+		"https://checkstyle.org/dtds/configuration_1_3.dtd">
+
+<!--
+	Lean checkstyle for a prototyping template — the only static-analysis/formatting tool in
+	this build (no third-party Spring Java Format plugin). The rule that earns its keep is
+	ImportControl, which enforces the modular-monolith boundaries declared in
+	import-control.xml. Whitespace/indentation is left to .editorconfig at the editor level.
+
+	Deliberately NOT using io.spring.javaformat.checkstyle.SpringChecks: that is the Spring
+	Framework contributor ruleset (mandatory @author tags, package-info per package, full
+	Javadoc on every type) — too heavy for prototyping. Add stricter modules here as the
+	project matures.
+-->
+<module name="com.puppycrawl.tools.checkstyle.Checker">
+
+	<module name="SuppressionFilter">
+		<property name="file" value="${config_loc}/checkstyle-suppressions.xml"/>
+	</module>
+
+	<module name="com.puppycrawl.tools.checkstyle.TreeWalker">
+
+		<!-- Module-boundary enforcement (production code only). -->
+		<module name="ImportControl">
+			<property name="file" value="${config_loc}/import-control.xml"/>
+			<property name="path" value="^.*[\\/]src[\\/]main[\\/]java[\\/].*$"/>
+		</module>
+
+		<!-- No wildcard, unused, or redundant imports. -->
+		<module name="AvoidStarImport"/>
+		<module name="UnusedImports"/>
+		<module name="RedundantImport"/>
+
+		<!-- Prefer AssertJ over JUnit/Hamcrest assertions in tests. -->
+		<module name="com.puppycrawl.tools.checkstyle.checks.regexp.RegexpSinglelineJavaCheck">
+			<property name="maximum" value="0"/>
+			<property name="format" value="org\.junit\.Assert|org\.junit\.jupiter\.api\.Assertions"/>
+			<property name="message" value="Please use AssertJ (assertThat) instead of JUnit assertions."/>
+			<property name="ignoreComments" value="true"/>
+		</module>
+
+	</module>
+</module>

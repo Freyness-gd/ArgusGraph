@@ -7,7 +7,7 @@ making changes.
 
 - **JDK 25** — Gradle auto-provisions BellSoft Liberica via the Foojay resolver if it's not
   installed, so you usually don't need to install it manually.
-- **Docker** — for Neo4j (compose) and for Testcontainers-based tests.
+- **Docker** — for Neo4j + RabbitMQ (compose) and for Testcontainers-based tests.
 - That's it. No global Gradle install needed — use the `./gradlew` wrapper.
 
 ## Fastest path to a running app
@@ -20,7 +20,7 @@ no `.env`, no manual database.
 
 ```bash
 cp .env.example .env
-docker compose up -d          # Neo4j only (the `app` service is behind the `app` profile)
+docker compose up -d          # Neo4j + RabbitMQ (the `app` service is behind the `app` profile)
 ./gradlew bootRun             # app on http://localhost:8080  (context path /api/v1)
 curl http://localhost:8080/api/v1/actuator/health    # -> {"status":"UP"}
 ```
@@ -55,6 +55,7 @@ Docker daemon.
 - OpenAPI JSON: `http://localhost:8080/api/v1/v3/api-docs`
 - Health: `http://localhost:8080/api/v1/actuator/health`
 - Neo4j browser: `http://localhost:7474` (credentials from `.env`)
+- RabbitMQ management UI: `http://localhost:15672` (credentials from `.env`)
 - Bruno collection: `bruno/argusgraph-api` (Ingest requests, then **Get Package Version**)
 
 ## Common gotchas

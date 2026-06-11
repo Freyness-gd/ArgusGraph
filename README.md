@@ -44,7 +44,8 @@ dev.argusgraph
 ├── app/      # Bootstrap + cross-cutting: security, error handling, OpenAPI, config
 ├── shared/   # Tiny shared kernel (common exceptions)
 ├── graph/    # KG core — domain types, GraphAPI contract, Cypher persistence, read API
-└── ingest/   # Input adapters — typed REST + worker pipeline (fetch → RabbitMQ → graph)
+├── ingest/   # Input adapters — typed REST + worker pipeline (fetch → RabbitMQ → graph)
+└── project/  # SBOM import — CycloneDX parsing, H2-backed project store, vulnerability matching
 ```
 
 Spring Boot modular monolith (Spring Modulith + jMolecules). The ingest module talks to
@@ -63,6 +64,8 @@ time (Checkstyle ImportControl) and test time (`ModulithTests`).
 | `GET  /graph/package-versions?purl=`| A version + direct dependencies + known vulns      |
 | `GET  /graph/stats`                 | Whole-graph counts + severity buckets (dashboard)  |
 | `GET  /graph/vulnerabilities`       | Paged vulnerability list with severity/text filters |
+| `POST /projects`                    | Import a CycloneDX SBOM as a project (stored in H2) |
+| `GET  /projects/{id}`               | Project detail with live vulnerability match       |
 
 The REST API lives under `/api/v1`; the dashboard SPA is served from the root path `/`. Errors are RFC 9457 `problem+json`:
 400 validation, 404 unknown node, 409 domain-rule violation (e.g. malformed purl).
@@ -127,7 +130,8 @@ curl "http://localhost:8080/api/v1/graph/package-versions?purl=pkg:maven/org.apa
 ## Dashboard
 
 A no-build Mithril.js SPA served from the jar at http://localhost:8080/ — graph stats,
-vulnerability browsing, purl lookup, and manual OSV fetch triggers. Source lives in
+vulnerability browsing, purl lookup, manual OSV fetch triggers, and project SBOM import
+with live vulnerability matching (Projects tab). Source lives in
 `src/main/resources/static/` (no npm, no bundler — edit and refresh).
 
 ---
@@ -140,6 +144,7 @@ vulnerability browsing, purl lookup, and manual OSV fetch triggers. Source lives
 | Architecture  | jMolecules (DDD + layered annotations), modular monolith              |
 | API           | Spring Web MVC (REST), springdoc OpenAPI 3                            |
 | Graph store   | Neo4j 5 Community, Spring Data Neo4j (`Neo4jClient` + explicit Cypher) |
+| Relational    | H2 embedded (file-mode, `./data/`) — project/SBOM store               |
 | Messaging     | RabbitMQ 4 (AMQP 0-9-1), Spring AMQP — async source-ingestion pipeline |
 | Purl parsing  | packageurl-java                                                       |
 | Security      | Spring Security — **open by default**, JWT resource-server ready      |

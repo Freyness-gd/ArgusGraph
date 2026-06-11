@@ -59,6 +59,7 @@ Docker daemon.
 - Neo4j browser: `http://localhost:7474` (credentials from `.env`)
 - RabbitMQ management UI: `http://localhost:15672` (credentials from `.env`)
 - Bruno collection: `bruno/argusgraph-api` (Ingest requests, then **Get Package Version**)
+- Projects tab (SBOM import + vulnerability matching): `http://localhost:8080/` → Projects
 
 ## Common gotchas
 
@@ -71,3 +72,6 @@ Docker daemon.
 - **Security is open** by default — every endpoint is reachable with no token.
 - **Checkstyle never fails the build** here (warn-only) — it checks module boundaries +
   imports. There is no auto-formatter; `.editorconfig` governs whitespace/indentation.
+- **H2 project store** lives at `./data/` (file-mode, gitignored). Delete that directory
+  for a fresh project store — the schema is created automatically on boot via
+  `spring.jpa.hibernate.ddl-auto=update`.

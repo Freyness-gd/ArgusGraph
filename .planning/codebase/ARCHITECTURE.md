@@ -14,6 +14,7 @@ Every **direct sub-package** is a Spring Modulith application module:
 | `shared`  | OPEN shared kernel — tiny dependency-free types (common exceptions).  |
 | `graph`   | KG core: domain types, `GraphAPI` contract, Cypher persistence, read API. Depends on no other module. |
 | `ingest`  | Input adapters: typed REST + async worker pipeline (`worker/`: fetch → RabbitMQ → transform → save; OSV today, NVD/GHSA/deps.dev later). Calls `graph` via `GraphAPI` only. |
+| `project` | Imported SBOM projects in embedded H2 (NOT graph nodes); on-demand match via `GraphAPI.matchPackageVersions`. |
 
 ## The graph model (model A — version-level)
 
@@ -40,7 +41,9 @@ A module exposes exactly one thing to other modules: its **published `*API` inte
 
 `ingest` → `graph` is the reference example: `IngestService` calls `GraphAPI` methods and
 works only with its nested records. It never imports `GraphService`, the domain types'
-internals, or the Cypher adapter.
+internals, or the Cypher adapter. `project` → `graph` is the second `GraphAPI` consumer:
+`ProjectService` calls `GraphAPI.matchPackageVersions` for on-demand vulnerability matching
+without touching any graph-internal types.
 
 Boundaries are enforced **twice**:
 

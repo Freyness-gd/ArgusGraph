@@ -4,6 +4,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.springframework.stereotype.Service;
+import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -27,7 +28,7 @@ public class SbomParser {
 		try {
 			root = MAPPER.readTree(sbomJson);
 		}
-		catch (RuntimeException ex) {
+		catch (JacksonException ex) {
 			throw new BusinessRuleException("Not a CycloneDX SBOM: body is not valid JSON.");
 		}
 		JsonNode components = root.path("components");

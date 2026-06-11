@@ -17,6 +17,25 @@ spring:
       username: ${NEO4J_USERNAME:neo4j}
       password: ${NEO4J_PASSWORD:argusgraph-dev}
 
+  # ── RabbitMQ ─────────────────────────────────────────────────────────────────
+  # Env-driven with localhost defaults matching the `rabbitmq` service in compose.yaml.
+  # Listener retry: 3 attempts with backoff, then reject without requeue → the message
+  # dead-letters to ingest.osv.dlq (topology declared in IngestAmqpConfig).
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-retries: 2          # 1 initial attempt + 2 retries = 3 total deliveries (Boot 4 renamed max-attempts)
+          initial-interval: 1s
+          multiplier: 3
+          max-interval: 10s
+
   # We start compose manually; don't let Spring auto-manage it.
   docker:
     compose:
@@ -60,3 +79,11 @@ logging:
     root: INFO
     dev.argusgraph: DEBUG
     org.springframework: INFO
+
+# ── Ingest worker ─────────────────────────────────────────────────────────────
+# OSV dump source for the fetch worker (POST /ingest/jobs/osv). Override in tests
+# or to point at a mirror; the default is the public OSV GCS bucket.
+argus:
+  ingest:
+    osv:
+      base-url: ${OSV_BASE_URL:https://osv-vulnerabilities.storage.googleapis.com}

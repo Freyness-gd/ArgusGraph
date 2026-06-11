@@ -13,7 +13,7 @@ Every **direct sub-package** is a Spring Modulith application module:
 | `app`     | Cross-cutting bootstrap: security, error handling, OpenAPI, config.   |
 | `shared`  | OPEN shared kernel — tiny dependency-free types (common exceptions).  |
 | `graph`   | KG core: domain types, `GraphAPI` contract, Cypher persistence, read API. Depends on no other module. |
-| `ingest`  | Input adapters: typed REST today, scraper workers (OSV/NVD/GHSA/deps.dev) later. Calls `graph` via `GraphAPI` only. |
+| `ingest`  | Input adapters: typed REST + async worker pipeline (`worker/`: fetch → RabbitMQ → transform → save; OSV today, NVD/GHSA/deps.dev later). Calls `graph` via `GraphAPI` only. |
 
 ## The graph model (model A — version-level)
 

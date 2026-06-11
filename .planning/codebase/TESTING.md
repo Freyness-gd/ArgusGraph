@@ -5,6 +5,7 @@
 | `ModulithTests`               | Module-boundary verification                | No            |
 | `graph/PurlTest`              | Purl canonicalisation rules (pure unit)     | No            |
 | `IngestGraphIntegrationTest`  | End-to-end HTTP over real Neo4j             | Yes           |
+| `IngestWorkerIntegrationTest` | Worker E2E: POST /ingest/jobs/osv → RabbitMQ → Neo4j | Yes  |
 
 ## Module verification — `ModulithTests`
 
@@ -14,8 +15,9 @@ thing to run after adding or rewiring a module.
 
 ## Integration tests — Testcontainers
 
-`TestcontainersConfiguration` provides a `Neo4jContainer` wired via Spring Boot's
-`@ServiceConnection` (no bolt URIs in test config). Import it into any `@SpringBootTest`:
+`TestcontainersConfiguration` provides a `Neo4jContainer` and a `RabbitMQContainer`, both
+wired via Spring Boot's `@ServiceConnection` (no URIs in test config). Import it into any
+`@SpringBootTest`:
 
 ```java
 @SpringBootTest(webEnvironment = RANDOM_PORT)

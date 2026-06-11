@@ -13,12 +13,13 @@ milestone repository (everything else is on Maven Central). Versions are pinned 
 | Web            | Spring Web MVC                  | (Boot BOM) | `spring-boot-starter-webmvc`                     |
 | API docs       | springdoc-openapi               | 3.0.3      | 3.x line targets Spring Boot 4 / Spring 7        |
 | Graph store    | Neo4j 5 Community + Spring Data Neo4j | (Boot BOM) | `Neo4jClient` + explicit Cypher; no SDN `@Node` mapping |
+| Messaging      | RabbitMQ 4 (AMQP 0-9-1), Spring AMQP | (Boot BOM) | topic exchange `argus.ingest`, DLX/DLQ, async source-ingestion pipeline |
 | Purl parsing   | packageurl-java                 | 1.5.0      | canonical purl natural keys                      |
 | Schema         | `GraphSchemaInitializer`        | —          | uniqueness constraints at startup (`IF NOT EXISTS`) |
 | Security       | Spring Security                 | (Boot BOM) | open by default; oauth2-resource-server commented |
 | Boilerplate    | Lombok                          | (Boot BOM) | `lombok.config` present                          |
 | Validation     | Jakarta Bean Validation         | (Boot BOM) | `spring-boot-starter-validation`                 |
-| Testing        | JUnit 5, AssertJ, Testcontainers, Spring Modulith test | (BOMs) | Neo4j container via `@ServiceConnection` |
+| Testing        | JUnit 5, AssertJ, Testcontainers, Spring Modulith test | (BOMs) | Neo4j + RabbitMQ containers via `@ServiceConnection` |
 | Build          | Gradle (Kotlin DSL)             | 9.4.0      | version catalog + `dependencyLocking`            |
 | Code quality   | Checkstyle (ImportControl)      | 13.0.0     | **non-blocking** (warn only), JaCoCo coverage    |
 

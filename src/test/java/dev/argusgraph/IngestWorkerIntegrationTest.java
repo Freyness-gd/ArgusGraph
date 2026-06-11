@@ -121,7 +121,8 @@ class IngestWorkerIntegrationTest {
 	@Test
 	@SuppressWarnings("unchecked")
 	void statusEndpointTracksTriggeredFetchToCompletion() {
-		this.rest.postForEntity("/api/v1/ingest/jobs/osv?ecosystem=npm", null, Void.class);
+		assertThat(this.rest.postForEntity("/api/v1/ingest/jobs/osv?ecosystem=npm", null, Void.class)
+			.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
 
 		await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
 			Map<String, Object> status = this.rest.getForObject("/api/v1/ingest/jobs/status", Map.class);
@@ -139,7 +140,8 @@ class IngestWorkerIntegrationTest {
 	@Test
 	@SuppressWarnings("unchecked")
 	void statusEndpointReportsFailedFetch() {
-		this.rest.postForEntity("/api/v1/ingest/jobs/osv?ecosystem=explode", null, Void.class);
+		assertThat(this.rest.postForEntity("/api/v1/ingest/jobs/osv?ecosystem=explode", null, Void.class)
+			.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
 
 		await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
 			Map<String, Object> status = this.rest.getForObject("/api/v1/ingest/jobs/status", Map.class);

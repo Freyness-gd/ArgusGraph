@@ -26,6 +26,9 @@ spring:
     port: ${RABBITMQ_PORT:5672}
     username: ${RABBITMQ_USERNAME:guest}
     password: ${RABBITMQ_PASSWORD:guest}
+    # Status endpoint probes queue depths every dashboard poll — a blackholed broker
+    # must fail fast, not block Tomcat threads for the client default of 60 s.
+    connection-timeout: 3s
     listener:
       simple:
         default-requeue-rejected: false

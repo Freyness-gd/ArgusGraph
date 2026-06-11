@@ -31,6 +31,7 @@ public class OsvFetchJob {
 
 	@Async("ingestWorkerExecutor")
 	public void runOsv(String ecosystem) {
+		// Registered only once the executor actually starts us — queued submits stay invisible (no QUEUED state in v1).
 		IngestJobRegistry.JobRecord job = this.registry.start(ecosystem);
 		log.info("OSV fetch started: ecosystem={}", ecosystem);
 		try {
@@ -44,6 +45,11 @@ public class OsvFetchJob {
 		catch (RuntimeException ex) {
 			job.fail(ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName());
 			log.error("OSV fetch failed: ecosystem={} documentsPublished={}", ecosystem, job.documentsPublished(), ex);
+		}
+		catch (Error err) {
+			// OOME from a hostile/oversized dump must not leave the job stuck RUNNING.
+			job.fail(err.toString());
+			throw err;
 		}
 	}
 

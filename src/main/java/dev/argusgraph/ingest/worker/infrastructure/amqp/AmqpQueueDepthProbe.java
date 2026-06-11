@@ -1,6 +1,7 @@
 package dev.argusgraph.ingest.worker.infrastructure.amqp;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.core.AmqpAdmin;
 import org.springframework.amqp.core.QueueInformation;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ import dev.argusgraph.ingest.worker.application.QueueDepthProbe;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 class AmqpQueueDepthProbe implements QueueDepthProbe {
 
 	private final AmqpAdmin amqp;
@@ -25,6 +27,7 @@ class AmqpQueueDepthProbe implements QueueDepthProbe {
 			return info == null ? null : (int) info.getMessageCount();
 		}
 		catch (RuntimeException ex) {
+			log.debug("Queue depth probe failed for {}: {}", queueName, ex.getMessage());
 			return null;
 		}
 	}

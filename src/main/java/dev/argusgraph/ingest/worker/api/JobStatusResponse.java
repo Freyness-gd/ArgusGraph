@@ -27,7 +27,7 @@ public record JobStatusResponse(List<JobResponse> jobs, List<QueueResponse> queu
 	/** One queue and its current depth; {@code messages} is null when the broker cannot say. */
 	@Schema(name = "QueueDepth")
 	public record QueueResponse(@Schema(example = "ingest.osv") String name,
-			@Schema(example = "8211") Integer messages) {
+			@Schema(example = "8211", nullable = true, description = "Current message count; null when the broker cannot answer (not the same as 0).") Integer messages) {
 	}
 
 }

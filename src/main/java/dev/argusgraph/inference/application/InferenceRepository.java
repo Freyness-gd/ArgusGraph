@@ -19,7 +19,7 @@ public interface InferenceRepository {
     /** Delete all R1-derived edges. Returns edges deleted. */
     long deleteR1();
 
-    /** Transitive exposure for the given source purls, ordered by severity then depth. */
+    /** Transitive exposure for the given source purls, ordered by ascending dependency depth. */
     List<InferenceAPI.TransitiveHit> readTransitive(Collection<String> purls);
 
 }

@@ -26,7 +26,6 @@ class Neo4jInferenceRepository implements InferenceRepository {
             MATCH (v:Vulnerability)-[:AFFECTS]->(target:PackageVersion)
             MATCH (source:PackageVersion)-[:DEPENDS_ON*1..]->(target)
             WHERE $sourcePurls IS NULL OR source.purl IN $sourcePurls
-            WITH v, source, target
             WITH v, source, min(length(shortestPath((source)-[:DEPENDS_ON*1..]->(target)))) AS depth
             MERGE (v)-[t:TRANSITIVELY_AFFECTED]->(source)
               SET t.depth = depth, t.inferredBy = 'R1', t.ruleVersion = $ruleVersion,

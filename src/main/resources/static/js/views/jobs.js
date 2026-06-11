@@ -29,7 +29,7 @@ export const JobsView = {
             { disabled: this.running || !this.ecosystem.trim(), onclick: () => this.trigger() },
             this.running ? "Starting…" : "Start fetch"),
         ]),
-        m("p.muted", ["Queue status: ", m("a", { href: "http://localhost:15672", target: "_blank" },
+        m("p.muted", ["Queue status: ", m("a", { href: "http://localhost:15672", target: "_blank", rel: "noopener" },
             "RabbitMQ management UI")]),
       ]),
     ];

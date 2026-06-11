@@ -23,6 +23,7 @@ cp .env.example .env
 docker compose up -d          # Neo4j + RabbitMQ (the `app` service is behind the `app` profile)
 ./gradlew bootRun             # app on http://localhost:8080
 curl http://localhost:8080/actuator/health    # -> {"status":"UP"}
+# Dashboard SPA at http://localhost:8080/
 ```
 
 **Fully containerised:**
@@ -51,6 +52,7 @@ Docker daemon.
 
 ## Endpoints once running
 
+- Dashboard UI: `http://localhost:8080/`
 - Swagger UI: `http://localhost:8080/swagger-ui.html`
 - OpenAPI JSON: `http://localhost:8080/v3/api-docs`
 - Health: `http://localhost:8080/actuator/health`

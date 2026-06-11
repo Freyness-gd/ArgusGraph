@@ -11,6 +11,7 @@ import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRe
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +30,15 @@ class DashboardIntegrationTest {
 
 	@Autowired
 	private TestRestTemplate rest;
+
+	@Test
+	void servesTheSpaAtRoot() {
+		ResponseEntity<String> response = this.rest.getForEntity("/", String.class);
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getHeaders().getContentType()).isNotNull();
+		assertThat(response.getHeaders().getContentType().isCompatibleWith(MediaType.TEXT_HTML)).isTrue();
+		assertThat(response.getBody()).contains("ArgusGraph");
+	}
 
 	@Test
 	@SuppressWarnings("unchecked")

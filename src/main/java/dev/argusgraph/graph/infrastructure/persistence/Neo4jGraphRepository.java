@@ -146,12 +146,16 @@ class Neo4jGraphRepository implements GraphRepository {
 			RETURN count(v) AS total
 			""";
 
+	// Batch size is per-transaction: each batch detach-deletes this many nodes plus all
+	// their relationships in one tx. OSV vulnerability nodes are high-degree, so a large
+	// batch can exceed db.memory.transaction.max on an untuned community instance. 1000
+	// keeps each tx small; throughput cost over 10000 is negligible for a one-off reset.
 	private static final String WIPE_ALL = """
 			MATCH (n)
 			CALL {
 			    WITH n
 			    DETACH DELETE n
-			} IN TRANSACTIONS OF 10000 ROWS
+			} IN TRANSACTIONS OF 1000 ROWS
 			""";
 
 	private static final String TREND_BUCKETS = """

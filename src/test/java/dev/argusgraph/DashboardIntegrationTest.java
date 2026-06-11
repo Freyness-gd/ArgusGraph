@@ -1,5 +1,6 @@
 package dev.argusgraph;
 
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -182,6 +183,61 @@ class DashboardIntegrationTest {
 
 	private static GraphAPI.PurlMatch byPurl(List<GraphAPI.PurlMatch> matches, String purl) {
 		return matches.stream().filter(match -> match.purl().equals(purl)).findFirst().orElseThrow();
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void vulnerabilityTrendBucketsAndZeroFills() {
+		ingestVulnerability("ARGUS-TREND-A", "trend marker a", null, "2026-04-02T10:00:00Z");
+		ingestVulnerability("ARGUS-TREND-B", "trend marker b", null, "2026-04-04T10:00:00Z");
+		ingestVulnerability("ARGUS-TREND-C", "trend marker c", null, "2026-04-04T15:00:00Z");
+
+		Map<String, Object> trend = this.rest.getForObject(
+				"/api/v1/graph/stats/vulnerability-trend?from=2026-04-01&to=2026-04-05", Map.class);
+		assertThat(trend).containsEntry("interval", "day");
+		List<Map<String, Object>> buckets = (List<Map<String, Object>>) trend.get("buckets");
+		assertThat(buckets).hasSize(5);
+		assertThat(buckets.get(0)).containsEntry("label", "2026-04-01").containsEntry("count", 0);
+		assertThat(buckets.get(1)).containsEntry("label", "2026-04-02").containsEntry("count", 1);
+		assertThat(buckets.get(2)).containsEntry("label", "2026-04-03").containsEntry("count", 0);
+		assertThat(buckets.get(3)).containsEntry("label", "2026-04-04").containsEntry("count", 2);
+		assertThat(buckets.get(4)).containsEntry("label", "2026-04-05").containsEntry("count", 0);
+
+		// Defaults: past month inclusive = always 31 day-buckets, whatever today is.
+		Map<String, Object> defaults = this.rest.getForObject("/api/v1/graph/stats/vulnerability-trend", Map.class);
+		assertThat(defaults).containsEntry("interval", "day");
+		assertThat((List<?>) defaults.get("buckets")).hasSize(31);
+
+		// from > to → 409.
+		assertThat(this.rest
+			.getForEntity("/api/v1/graph/stats/vulnerability-trend?from=2026-05-02&to=2026-05-01", Map.class)
+			.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void topPackagesRanksByDistinctVulnerabilities() {
+		ingestPackageVersion("pkg:maven/dev.argusgraph.top/lib@1.0.0");
+		ingestVulnerability("ARGUS-TOP-1", "top marker 1", null, "2026-04-10T00:00:00Z");
+		ingestVulnerability("ARGUS-TOP-2", "top marker 2", null, "2026-04-11T00:00:00Z");
+		linkAffects("ARGUS-TOP-1", "pkg:maven/dev.argusgraph.top/lib@1.0.0");
+		linkAffects("ARGUS-TOP-2", "pkg:maven/dev.argusgraph.top/lib@1.0.0");
+
+		List<Map<String, Object>> top = this.rest.getForObject("/api/v1/graph/stats/top-packages?limit=25",
+				List.class);
+		assertThat(top).anySatisfy(row -> {
+			assertThat(row).containsEntry("packagePurl", "pkg:maven/dev.argusgraph.top/lib");
+			assertThat(((Number) row.get("vulnerabilities")).intValue()).isEqualTo(2);
+		});
+		List<Integer> counts = top.stream().map(r -> ((Number) r.get("vulnerabilities")).intValue()).toList();
+		assertThat(counts).isSortedAccordingTo(Comparator.reverseOrder());
+	}
+
+	private void linkAffects(String vulnerabilityId, String purl) {
+		assertThat(this.rest
+			.postForEntity("/api/v1/ingest/affects", Map.of("vulnerabilityId", vulnerabilityId, "purl", purl),
+					Void.class)
+			.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 	}
 
 	private void ingestPackageVersion(String purl) {

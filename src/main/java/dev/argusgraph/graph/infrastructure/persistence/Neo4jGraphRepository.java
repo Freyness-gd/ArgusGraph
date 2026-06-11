@@ -1,6 +1,7 @@
 package dev.argusgraph.graph.infrastructure.persistence;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
@@ -23,6 +24,7 @@ import dev.argusgraph.graph.PackageVersion;
 import dev.argusgraph.graph.Vulnerability;
 import dev.argusgraph.graph.application.GraphRepository;
 import dev.argusgraph.graph.application.GraphStats;
+import dev.argusgraph.graph.application.PackageHits;
 import dev.argusgraph.graph.application.PackageVersionDetails;
 import dev.argusgraph.graph.application.VulnerabilityPage;
 
@@ -150,6 +152,22 @@ class Neo4jGraphRepository implements GraphRepository {
 			    WITH n
 			    DETACH DELETE n
 			} IN TRANSACTIONS OF 10000 ROWS
+			""";
+
+	private static final String TREND_BUCKETS = """
+			MATCH (v:Vulnerability)
+			WHERE v.published IS NOT NULL
+			  AND date(v.published) >= date($from)
+			  AND date(v.published) <= date($to)
+			WITH date.truncate($interval, date(v.published)) AS bucket, count(v) AS n
+			RETURN toString(bucket) AS bucket, n
+			""";
+
+	private static final String TOP_AFFECTED_PACKAGES = """
+			MATCH (v:Vulnerability)-[:AFFECTS]->(:PackageVersion)<-[:HAS_VERSION]-(p:Package)
+			RETURN p.purl AS packagePurl, count(DISTINCT v) AS vulnerabilities
+			ORDER BY vulnerabilities DESC, packagePurl ASC
+			LIMIT $limit
 			""";
 
 	private static final String MATCH_PACKAGE_VERSIONS = """
@@ -301,6 +319,34 @@ class Neo4jGraphRepository implements GraphRepository {
 						.map(v -> new GraphAPI.VulnerabilityRef((String) v.get("id"), (String) v.get("severity"),
 								toDouble(v.get("cvssScore")), (String) v.get("summary")))
 						.toList()))
+			.toList();
+	}
+
+	@Override
+	public Map<LocalDate, Long> trendBuckets(LocalDate from, LocalDate to, String interval) {
+		Map<String, Object> parameters = new HashMap<>();
+		parameters.put("from", from.toString());
+		parameters.put("to", to.toString());
+		parameters.put("interval", interval);
+		Map<LocalDate, Long> buckets = new HashMap<>();
+		this.neo4j.query(TREND_BUCKETS)
+			.bindAll(parameters)
+			.fetch()
+			.all()
+			.forEach(row -> buckets.put(LocalDate.parse((String) row.get("bucket")),
+					((Number) row.get("n")).longValue()));
+		return buckets;
+	}
+
+	@Override
+	public List<PackageHits> topAffectedPackages(int limit) {
+		return this.neo4j.query(TOP_AFFECTED_PACKAGES)
+			.bindAll(Map.of("limit", limit))
+			.fetch()
+			.all()
+			.stream()
+			.map(row -> new PackageHits((String) row.get("packagePurl"),
+					((Number) row.get("vulnerabilities")).longValue()))
 			.toList();
 	}
 

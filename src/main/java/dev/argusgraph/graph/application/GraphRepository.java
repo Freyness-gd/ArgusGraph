@@ -1,7 +1,9 @@
 package dev.argusgraph.graph.application;
 
+import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.jmolecules.ddd.annotation.Repository;
@@ -66,5 +68,11 @@ public interface GraphRepository {
 
 	/** Match results for the given version purls — one entry per input purl. */
 	List<GraphAPI.PurlMatch> findMatches(Collection<String> purls);
+
+	/** Raw per-bucket counts of vulnerabilities published in [from, to]; gaps NOT filled. */
+	Map<LocalDate, Long> trendBuckets(LocalDate from, LocalDate to, String interval);
+
+	/** Packages ranked by distinct affecting vulnerabilities, descending; ties by purl ASC. */
+	List<PackageHits> topAffectedPackages(int limit);
 
 }

@@ -1,9 +1,16 @@
 package dev.argusgraph.graph.application;
 
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -34,6 +41,8 @@ import dev.argusgraph.shared.exception.ResourceNotFoundException;
 public class GraphService implements GraphAPI {
 
 	private static final int MAX_PAGE_SIZE = 100;
+
+	private static final int MAX_TOP_PACKAGES = 25;
 
 	private final GraphRepository graph;
 
@@ -131,6 +140,47 @@ public class GraphService implements GraphAPI {
 		int safePage = Math.max(page, 0);
 		int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
 		return this.graph.findVulnerabilities(severityFilter, text, safePage, safeSize);
+	}
+
+	/** Vulnerability publications per time bucket over [from, to] (defaults: past month), gaps zero-filled. */
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
+	public VulnerabilityTrend getVulnerabilityTrend(LocalDate from, LocalDate to) {
+		LocalDate effectiveTo = to != null ? to : LocalDate.now(ZoneOffset.UTC);
+		LocalDate effectiveFrom = from != null ? from : effectiveTo.minusDays(30);
+		if (effectiveFrom.isAfter(effectiveTo)) {
+			throw new BusinessRuleException("Invalid trend range: from must not be after to.");
+		}
+		long spanDays = ChronoUnit.DAYS.between(effectiveFrom, effectiveTo) + 1;
+		String interval = spanDays <= 45 ? "day" : spanDays <= 200 ? "week" : "month";
+		Map<LocalDate, Long> raw = this.graph.trendBuckets(effectiveFrom, effectiveTo, interval);
+
+		List<VulnerabilityTrend.TrendPoint> points = new ArrayList<>();
+		LocalDate cursor = truncate(effectiveFrom, interval);
+		LocalDate last = truncate(effectiveTo, interval);
+		while (!cursor.isAfter(last)) {
+			points.add(new VulnerabilityTrend.TrendPoint(cursor, raw.getOrDefault(cursor, 0L)));
+			cursor = switch (interval) {
+				case "day" -> cursor.plusDays(1);
+				case "week" -> cursor.plusWeeks(1);
+				default -> cursor.plusMonths(1);
+			};
+		}
+		return new VulnerabilityTrend(interval, points);
+	}
+
+	/** Packages ranked by distinct affecting vulnerabilities; limit clamped to 1..25. */
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
+	public List<PackageHits> topAffectedPackages(int limit) {
+		return this.graph.topAffectedPackages(Math.min(Math.max(limit, 1), MAX_TOP_PACKAGES));
+	}
+
+	/** Week truncation is ISO Monday — matches Neo4j's date.truncate('week', ...). */
+	private static LocalDate truncate(LocalDate date, String interval) {
+		return switch (interval) {
+			case "day" -> date;
+			case "week" -> date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+			default -> date.withDayOfMonth(1);
+		};
 	}
 
 	private static List<Vulnerability.Severity> toSeverities(VulnerabilityInput input) {

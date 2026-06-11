@@ -1,9 +1,13 @@
 package dev.argusgraph.graph.api;
 
+import java.time.LocalDate;
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -48,6 +52,20 @@ public class GraphController {
 			@RequestParam(defaultValue = "25") int size, @RequestParam(required = false) String severity,
 			@RequestParam(required = false) String q) {
 		return VulnerabilityPageResponse.from(this.graph.findVulnerabilities(severity, q, page, size));
+	}
+
+	@GetMapping("/stats/vulnerability-trend")
+	@Operation(summary = "Vulnerabilities published per time bucket over a date range (default: past month)")
+	public VulnerabilityTrendResponse vulnerabilityTrend(
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+			@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+		return VulnerabilityTrendResponse.from(this.graph.getVulnerabilityTrend(from, to));
+	}
+
+	@GetMapping("/stats/top-packages")
+	@Operation(summary = "Packages ranked by distinct affecting vulnerabilities")
+	public List<TopPackageResponse> topPackages(@RequestParam(defaultValue = "10") int limit) {
+		return this.graph.topAffectedPackages(limit).stream().map(TopPackageResponse::from).toList();
 	}
 
 	@PostMapping("/reset")

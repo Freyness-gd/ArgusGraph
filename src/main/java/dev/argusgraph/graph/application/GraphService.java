@@ -90,6 +90,12 @@ public class GraphService implements GraphAPI {
 			.orElseThrow(() -> new ResourceNotFoundException(PackageVersion.class, versionKey));
 	}
 
+	/** Whole-graph counts for the dashboard. */
+	@Transactional(readOnly = true)
+	public GraphStats getStats() {
+		return this.graph.fetchStats();
+	}
+
 	private static List<Vulnerability.Severity> toSeverities(VulnerabilityInput input) {
 		return input.severities() == null ? List.of()
 				: input.severities().stream().map(s -> new Vulnerability.Severity(s.type(), s.vector())).toList();

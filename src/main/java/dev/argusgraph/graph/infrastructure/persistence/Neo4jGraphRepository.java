@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import dev.argusgraph.graph.PackageVersion;
 import dev.argusgraph.graph.Vulnerability;
 import dev.argusgraph.graph.application.GraphRepository;
+import dev.argusgraph.graph.application.GraphStats;
 import dev.argusgraph.graph.application.PackageVersionDetails;
 
 /**
@@ -107,6 +109,17 @@ class Neo4jGraphRepository implements GraphRepository {
 			        WHERE x.id IS NOT NULL] AS vulnerabilities
 			""";
 
+	private static final String FETCH_STATS = """
+			RETURN COUNT { MATCH (:Package) } AS packages,
+			       COUNT { MATCH (:PackageVersion) } AS packageVersions,
+			       COUNT { MATCH (:Vulnerability) } AS vulnerabilities
+			""";
+
+	private static final String FETCH_SEVERITY_BUCKETS = """
+			MATCH (v:Vulnerability)
+			RETURN coalesce(v.severity, 'NONE') AS severity, count(v) AS n
+			""";
+
 	private final Neo4jClient neo4j;
 
 	@Override
@@ -193,6 +206,19 @@ class Neo4jGraphRepository implements GraphRepository {
 	@Override
 	public Optional<PackageVersionDetails> findPackageVersion(String purl) {
 		return this.neo4j.query(FIND_PACKAGE_VERSION).bindAll(Map.of("purl", purl)).fetch().one().map(this::toDetails);
+	}
+
+	@Override
+	public GraphStats fetchStats() {
+		Map<String, Object> counts = this.neo4j.query(FETCH_STATS).fetch().one().orElseThrow();
+		Map<String, Long> bySeverity = new LinkedHashMap<>();
+		this.neo4j.query(FETCH_SEVERITY_BUCKETS)
+			.fetch()
+			.all()
+			.forEach(row -> bySeverity.put((String) row.get("severity"), ((Number) row.get("n")).longValue()));
+		return new GraphStats(((Number) counts.get("packages")).longValue(),
+				((Number) counts.get("packageVersions")).longValue(),
+				((Number) counts.get("vulnerabilities")).longValue(), bySeverity);
 	}
 
 	@SuppressWarnings("unchecked")

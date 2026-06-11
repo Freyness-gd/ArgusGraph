@@ -33,4 +33,10 @@ public class GraphController {
 		return PackageVersionResponse.from(this.graph.getPackageVersion(purl));
 	}
 
+	@GetMapping("/stats")
+	@Operation(summary = "Whole-graph counts: packages, versions, vulnerabilities, severity buckets")
+	public GraphStatsResponse getStats() {
+		return GraphStatsResponse.from(this.graph.getStats());
+	}
+
 }

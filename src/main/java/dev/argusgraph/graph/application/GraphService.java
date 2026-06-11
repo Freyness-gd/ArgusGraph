@@ -1,5 +1,6 @@
 package dev.argusgraph.graph.application;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 
@@ -98,6 +99,15 @@ public class GraphService implements GraphAPI {
 	@Transactional(readOnly = true)
 	public GraphStats getStats() {
 		return this.graph.fetchStats();
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public List<PurlMatch> matchPackageVersions(Collection<String> purls) {
+		if (purls == null || purls.isEmpty()) {
+			return List.of();
+		}
+		return this.graph.findMatches(purls);
 	}
 
 	/**

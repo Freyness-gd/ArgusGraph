@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,6 +18,7 @@ import org.neo4j.driver.Session;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Component;
 
+import dev.argusgraph.graph.GraphAPI;
 import dev.argusgraph.graph.PackageVersion;
 import dev.argusgraph.graph.Vulnerability;
 import dev.argusgraph.graph.application.GraphRepository;
@@ -150,6 +152,16 @@ class Neo4jGraphRepository implements GraphRepository {
 			} IN TRANSACTIONS OF 10000 ROWS
 			""";
 
+	private static final String MATCH_PACKAGE_VERSIONS = """
+			UNWIND $purls AS purl
+			OPTIONAL MATCH (pv:PackageVersion {purl: purl})
+			OPTIONAL MATCH (v:Vulnerability)-[:AFFECTS]->(pv)
+			RETURN purl,
+			       pv IS NOT NULL AS known,
+			       [x IN collect(DISTINCT {id: v.id, severity: v.severity, cvssScore: v.cvssScore,
+			                               summary: v.summary}) WHERE x.id IS NOT NULL] AS vulnerabilities
+			""";
+
 	private final Neo4jClient neo4j;
 
 	private final Driver driver;
@@ -274,6 +286,22 @@ class Neo4jGraphRepository implements GraphRepository {
 			.one()
 			.orElse(0L);
 		return new VulnerabilityPage(items, page, size, total);
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<GraphAPI.PurlMatch> findMatches(Collection<String> purls) {
+		return this.neo4j.query(MATCH_PACKAGE_VERSIONS)
+			.bindAll(Map.of("purls", List.copyOf(purls)))
+			.fetch()
+			.all()
+			.stream()
+			.map(row -> new GraphAPI.PurlMatch((String) row.get("purl"), (Boolean) row.get("known"),
+					((List<Map<String, Object>>) row.get("vulnerabilities")).stream()
+						.map(v -> new GraphAPI.VulnerabilityRef((String) v.get("id"), (String) v.get("severity"),
+								toDouble(v.get("cvssScore")), (String) v.get("summary")))
+						.toList()))
+			.toList();
 	}
 
 	@Override

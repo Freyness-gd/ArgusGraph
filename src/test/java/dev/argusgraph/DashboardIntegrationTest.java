@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 
+import dev.argusgraph.graph.GraphAPI;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
@@ -34,6 +36,9 @@ class DashboardIntegrationTest {
 
 	@Autowired
 	private Neo4jClient neo4j;
+
+	@Autowired
+	private GraphAPI graphApi;
 
 	@Test
 	void servesTheSpaAtRoot() {
@@ -138,6 +143,45 @@ class DashboardIntegrationTest {
 			.orElse(0L);
 		assertThat(constraints).isGreaterThanOrEqualTo(3);
 		ingestPackageVersion("pkg:maven/dev.argusgraph.reset/lib@1.0.0");
+	}
+
+	@Test
+	void matchesPurlsAgainstTheGraph() {
+		ingestPackageVersion("pkg:maven/dev.argusgraph.match/hit@1.0.0");
+		ingestPackageVersion("pkg:maven/dev.argusgraph.match/clean@1.0.0");
+		ingestVulnerability("ARGUS-MATCH-1", "match marker", CRITICAL_VECTOR, "2026-02-01T00:00:00Z");
+		ResponseEntity<Void> affects = this.rest.postForEntity("/api/v1/ingest/affects",
+				Map.of("vulnerabilityId", "ARGUS-MATCH-1", "purl", "pkg:maven/dev.argusgraph.match/hit@1.0.0"),
+				Void.class);
+		assertThat(affects.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+		List<GraphAPI.PurlMatch> matches = this.graphApi.matchPackageVersions(
+				List.of("pkg:maven/dev.argusgraph.match/hit@1.0.0", "pkg:maven/dev.argusgraph.match/clean@1.0.0",
+						"pkg:npm/dev-argusgraph-ghost@0.0.1"));
+
+		assertThat(matches).hasSize(3);
+		GraphAPI.PurlMatch hit = byPurl(matches, "pkg:maven/dev.argusgraph.match/hit@1.0.0");
+		assertThat(hit.knownToGraph()).isTrue();
+		assertThat(hit.vulnerabilities()).singleElement().satisfies(v -> {
+			assertThat(v.id()).isEqualTo("ARGUS-MATCH-1");
+			assertThat(v.severity()).isEqualTo("CRITICAL");
+			assertThat(v.cvssScore()).isEqualTo(10.0);
+			assertThat(v.summary()).isEqualTo("match marker");
+		});
+
+		GraphAPI.PurlMatch clean = byPurl(matches, "pkg:maven/dev.argusgraph.match/clean@1.0.0");
+		assertThat(clean.knownToGraph()).isTrue();
+		assertThat(clean.vulnerabilities()).isEmpty();
+
+		GraphAPI.PurlMatch ghost = byPurl(matches, "pkg:npm/dev-argusgraph-ghost@0.0.1");
+		assertThat(ghost.knownToGraph()).isFalse();
+		assertThat(ghost.vulnerabilities()).isEmpty();
+
+		assertThat(this.graphApi.matchPackageVersions(List.of())).isEmpty();
+	}
+
+	private static GraphAPI.PurlMatch byPurl(List<GraphAPI.PurlMatch> matches, String purl) {
+		return matches.stream().filter(match -> match.purl().equals(purl)).findFirst().orElseThrow();
 	}
 
 	private void ingestPackageVersion(String purl) {

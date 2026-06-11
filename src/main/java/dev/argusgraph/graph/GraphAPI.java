@@ -1,6 +1,7 @@
 package dev.argusgraph.graph;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 
 import org.jmolecules.ddd.annotation.Service;
@@ -58,6 +59,22 @@ public interface GraphAPI {
 	 * idempotent — same text, same vector.
 	 */
 	void attachEmbedding(String vulnerabilityId, float[] embedding);
+
+	/**
+	 * Match version-level purls against the graph: which are known, and which
+	 * vulnerabilities affect them. Unknown purls come back with
+	 * {@code knownToGraph=false} and an empty vulnerability list. Every input purl
+	 * appears exactly once in the result; order is not guaranteed.
+	 */
+	List<PurlMatch> matchPackageVersions(Collection<String> purls);
+
+	/** Match result for one version-level purl. */
+	record PurlMatch(String purl, boolean knownToGraph, List<VulnerabilityRef> vulnerabilities) {
+	}
+
+	/** A vulnerability affecting a matched purl. */
+	record VulnerabilityRef(String id, String severity, Double cvssScore, String summary) {
+	}
 
 	/**
 	 * Cross-module input for a vulnerability upsert, mirroring the OSV fields the graph

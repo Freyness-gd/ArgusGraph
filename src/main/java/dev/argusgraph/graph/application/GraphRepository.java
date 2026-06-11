@@ -1,9 +1,12 @@
 package dev.argusgraph.graph.application;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import org.jmolecules.ddd.annotation.Repository;
 
+import dev.argusgraph.graph.GraphAPI;
 import dev.argusgraph.graph.PackageVersion;
 import dev.argusgraph.graph.Vulnerability;
 
@@ -60,5 +63,8 @@ public interface GraphRepository {
 	 * only runs in implicit (auto-commit) transactions.
 	 */
 	long wipeAll();
+
+	/** Match results for the given version purls — one entry per input purl. */
+	List<GraphAPI.PurlMatch> findMatches(Collection<String> purls);
 
 }

@@ -8,6 +8,7 @@ export const JobsView = {
   status: null,
   statusError: false,
   timer: null,
+  polling: false,
 
   oncreate() {
     clearInterval(this.timer);
@@ -18,10 +19,14 @@ export const JobsView = {
     clearInterval(this.timer);
   },
   poll() {
+    if (this.polling) {
+      return;
+    }
+    this.polling = true;
     get("/ingest/jobs/status")
       .then((status) => { this.status = status; this.statusError = false; })
       .catch(() => { this.statusError = true; })
-      .finally(m.redraw);
+      .finally(() => { this.polling = false; m.redraw(); });
   },
   hasActivity() {
     return this.status && ((this.status.jobs ?? []).length > 0

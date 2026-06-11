@@ -82,3 +82,6 @@ bruno/**/*.bru.env
 
 # Local design specs — never committed.
 docs/
+
+# Visual brainstorm sessions
+.superpowers/

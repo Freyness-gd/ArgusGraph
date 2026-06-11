@@ -37,10 +37,13 @@ public class ProjectService {
 	/** Import one CycloneDX SBOM; explicit name wins over SBOM metadata. */
 	public ImportResult importSbom(String name, String sbomJson) {
 		SbomParser.ParsedSbom sbom = this.parser.parse(sbomJson);
-		String resolved = (name != null && !name.isBlank()) ? name.trim() : sbom.defaultName();
+		String resolved = firstNonBlank(name, sbom.defaultName());
 		if (resolved == null || resolved.isBlank()) {
 			throw new BusinessRuleException(
 					"Project name required: pass ?name= or include metadata.component.name in the SBOM.");
+		}
+		if (resolved.length() > 255) {
+			throw new BusinessRuleException("Project name too long (max 255 characters).");
 		}
 		Project saved = this.projects.save(new Project(null, resolved, Instant.now(),
 				sbom.purls().stream().map(ProjectDependency::new).collect(Collectors.toSet())));
@@ -64,7 +67,7 @@ public class ProjectService {
 		List<String> purls = project.dependencies().stream().map(ProjectDependency::purl).toList();
 		Map<String, GraphAPI.PurlMatch> byPurl = this.graph.matchPackageVersions(purls)
 			.stream()
-			.collect(Collectors.toMap(GraphAPI.PurlMatch::purl, match -> match));
+			.collect(Collectors.toMap(GraphAPI.PurlMatch::purl, match -> match, (first, duplicate) -> first));
 
 		List<ProjectMatchDetails.DependencyMatch> dependencies = purls.stream().map(purl -> {
 			GraphAPI.PurlMatch match = byPurl.get(purl);
@@ -137,6 +140,20 @@ public class ProjectService {
 	private static int severityRank(String severity) {
 		int index = SEVERITY_ORDER.indexOf(severity == null ? "NONE" : severity);
 		return index < 0 ? SEVERITY_ORDER.size() : index;
+	}
+
+	/** First candidate that is non-blank after trimming; {@code null} when none is. */
+	private static String firstNonBlank(String... candidates) {
+		for (String candidate : candidates) {
+			if (candidate == null) {
+				continue;
+			}
+			String trimmed = candidate.trim();
+			if (!trimmed.isBlank()) {
+				return trimmed;
+			}
+		}
+		return null;
 	}
 
 	/** Result of one SBOM import. */

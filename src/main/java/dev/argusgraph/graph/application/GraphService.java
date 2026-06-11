@@ -30,7 +30,7 @@ import dev.argusgraph.shared.exception.ResourceNotFoundException;
 @Service
 @org.jmolecules.ddd.annotation.Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(transactionManager = "neo4jTransactionManager")
 public class GraphService implements GraphAPI {
 
 	private static final int MAX_PAGE_SIZE = 100;
@@ -89,7 +89,7 @@ public class GraphService implements GraphAPI {
 	}
 
 	/** Read a package version with its direct dependencies and known vulnerabilities. */
-	@Transactional(readOnly = true)
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
 	public PackageVersionDetails getPackageVersion(String purl) {
 		String versionKey = Purl.parse(purl).versionKey();
 		return this.graph.findPackageVersion(versionKey)
@@ -97,13 +97,13 @@ public class GraphService implements GraphAPI {
 	}
 
 	/** Whole-graph counts for the dashboard. */
-	@Transactional(readOnly = true)
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
 	public GraphStats getStats() {
 		return this.graph.fetchStats();
 	}
 
 	@Override
-	@Transactional(readOnly = true)
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
 	public List<PurlMatch> matchPackageVersions(Collection<String> purls) {
 		if (purls == null || purls.isEmpty()) {
 			return List.of();
@@ -117,13 +117,13 @@ public class GraphService implements GraphAPI {
 	 * batched delete uses {@code CALL ... IN TRANSACTIONS}, which Neo4j only allows in
 	 * implicit (auto-commit) transactions.
 	 */
-	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	@Transactional(transactionManager = "neo4jTransactionManager", propagation = Propagation.NOT_SUPPORTED)
 	public long resetGraph() {
 		return this.graph.wipeAll();
 	}
 
 	/** One page of the vulnerability browse table; blank filters mean "all". */
-	@Transactional(readOnly = true)
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
 	public VulnerabilityPage findVulnerabilities(String severity, String q, int page, int size) {
 		String severityFilter = (severity == null || severity.isBlank()) ? null
 				: severity.trim().toUpperCase(Locale.ROOT);

@@ -79,7 +79,7 @@ logging:
     org.springframework: INFO
 
 # ── Ingest worker ─────────────────────────────────────────────────────────────
-# OSV dump source for the fetch worker (POST /ingest/jobs/osv). Override in tests
+# OSV dump source for the fetch worker (POST /api/v1/ingest/jobs/osv). Override in tests
 # or to point at a mirror; the default is the public OSV GCS bucket.
 argus:
   ingest:

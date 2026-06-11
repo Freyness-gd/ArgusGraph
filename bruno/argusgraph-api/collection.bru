@@ -1,8 +1,9 @@
 docs {
   # ArgusGraph API
 
-  Typed ingestion into the CVE knowledge graph + graph reads. Context path is `/api/v1`
-  (set in `application.yaml`), so `{{baseUrl}}` already includes it.
+  Typed ingestion into the CVE knowledge graph + graph reads. API prefix `/api/v1` is
+  applied per-controller by `WebConfig` (not a servlet context path); `{{baseUrl}}`
+  already includes it.
 
   ## Quickstart
 

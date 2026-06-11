@@ -21,8 +21,8 @@ no `.env`, no manual database.
 ```bash
 cp .env.example .env
 docker compose up -d          # Neo4j + RabbitMQ (the `app` service is behind the `app` profile)
-./gradlew bootRun             # app on http://localhost:8080  (context path /api/v1)
-curl http://localhost:8080/api/v1/actuator/health    # -> {"status":"UP"}
+./gradlew bootRun             # app on http://localhost:8080
+curl http://localhost:8080/actuator/health    # -> {"status":"UP"}
 ```
 
 **Fully containerised:**
@@ -51,17 +51,18 @@ Docker daemon.
 
 ## Endpoints once running
 
-- Swagger UI: `http://localhost:8080/api/v1/swagger-ui.html`
-- OpenAPI JSON: `http://localhost:8080/api/v1/v3/api-docs`
-- Health: `http://localhost:8080/api/v1/actuator/health`
+- Swagger UI: `http://localhost:8080/swagger-ui.html`
+- OpenAPI JSON: `http://localhost:8080/v3/api-docs`
+- Health: `http://localhost:8080/actuator/health`
 - Neo4j browser: `http://localhost:7474` (credentials from `.env`)
 - RabbitMQ management UI: `http://localhost:15672` (credentials from `.env`)
 - Bruno collection: `bruno/argusgraph-api` (Ingest requests, then **Get Package Version**)
 
 ## Common gotchas
 
-- **Everything is under `/api/v1`** (server context path). Don't forget it in curl/Bruno
-  URLs — but `TestRestTemplate` in tests already includes it (use `/ingest/...`).
+- **REST API is under `/api/v1`** (controller prefix applied by `WebConfig`, not a servlet
+  context path). UI, actuator, and Swagger are at server root — no prefix. `TestRestTemplate`
+  does **not** auto-prefix — spell `/api/v1/...` in tests.
 - **Purls in query strings need URL-encoding** (`@` → `%40`).
 - **Uniqueness constraints auto-create on boot** (`GraphSchemaInitializer`) — no manual
   schema step; switch to a migration tool (e.g. neo4j-migrations) when schema work grows.

@@ -37,8 +37,10 @@ nodes/edges, asserted with raw Cypher counts via `Neo4jClient`) and the **error 
 - `TestRestTemplate` import is `org.springframework.boot.resttestclient.TestRestTemplate`,
   requires `@AutoConfigureTestRestTemplate` and `spring-boot-restclient` on the test
   classpath.
-- Its base URL **already includes the `/api/v1` context path** — request `/ingest/...`,
-  not `/api/v1/ingest/...`.
+- There is **no context path** anymore — the `/api/v1` prefix is applied per-controller
+  by `WebConfig`, not by the servlet container. `TestRestTemplate` does **not** add any
+  prefix automatically, so tests must spell the full path: `/api/v1/ingest/...`, not
+  `/ingest/...`. Actuator lives at server root: `/actuator/health`.
 
 ## Run the app against a throwaway DB
 

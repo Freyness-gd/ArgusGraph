@@ -55,8 +55,9 @@ Progress: [████░░░░░░] ~40%
   resolution, R3 alias merge, R4 withdrawn retraction), fixpoint loop, Modulith events
   for incremental recompute.
 - Boot 4 note: `TestRestTemplate` lives in `org.springframework.boot.resttestclient`
-  and needs `spring-boot-restclient` on the test classpath; its base URL already
-  includes the `/api/v1` context path.
+  and needs `spring-boot-restclient` on the test classpath; there is no context path —
+  the `/api/v1` prefix is applied per-controller by `WebConfig`, so tests must spell
+  the full path (e.g. `/api/v1/ingest/...`). Actuator is at root: `/actuator/health`.
 
 ### Blockers/Concerns
 

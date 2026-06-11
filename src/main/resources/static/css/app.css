@@ -168,9 +168,9 @@ a { color: var(--accent); }
 .badge.q-alarm { background: var(--sev-critical); }
 .badge.state-running { background: var(--accent); }
 .badge.state-completed { background: #238636; }
+.badge.state-failed { background: var(--sev-critical); }
 
 /* ── Project verdicts ── */
 .badge.verdict-affected { background: var(--sev-critical); }
 .badge.verdict-unknown { background: var(--sev-none); color: var(--muted); }
 .badge.verdict-clean { background: #238636; }
-.badge.state-failed { background: var(--sev-critical); }

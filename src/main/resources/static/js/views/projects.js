@@ -1,5 +1,6 @@
 import { get, post, del } from "../api.js";
 import { toast } from "../toast.js";
+import { ChartCanvas, SEVERITY_COLORS } from "../charts.js";
 
 export const ProjectsView = {
   projects: [],
@@ -128,6 +129,26 @@ export const ProjectDetailView = {
           ...Object.entries(d.summary.bySeverity || {}).map(([severity, count]) =>
             m("span.badge", { class: "sev-" + severity.toLowerCase() }, `${severity} ${count}`)),
         ]),
+      ]),
+      Object.keys(d.summary.bySeverity || {}).length > 0 && m(".card", [
+        m(".card-label", "Severity distribution"),
+        m(".chart-box.donut", m(ChartCanvas, {
+          type: "doughnut",
+          data: {
+            labels: Object.keys(d.summary.bySeverity),
+            datasets: [{
+              data: Object.values(d.summary.bySeverity),
+              backgroundColor: Object.keys(d.summary.bySeverity)
+                .map((s) => SEVERITY_COLORS[s] || "#21262d"),
+              borderColor: "#0d1117",
+            }],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: "right" } },
+          },
+        })),
       ]),
       m(".card", [
         m(".card-label", `Affected dependencies (${affected.length})`),

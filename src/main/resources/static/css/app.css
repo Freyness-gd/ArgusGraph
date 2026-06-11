@@ -174,3 +174,7 @@ a { color: var(--accent); }
 .badge.verdict-affected { background: var(--sev-critical); }
 .badge.verdict-unknown { background: var(--sev-none); color: var(--muted); }
 .badge.verdict-clean { background: #238636; }
+
+/* ── Charts ── */
+.chart-box { position: relative; height: 260px; }
+.chart-box.donut { height: 220px; }

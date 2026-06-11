@@ -121,6 +121,8 @@ button {
 }
 button:hover:not(:disabled) { border-color: var(--accent); }
 button:disabled { color: var(--muted); cursor: default; }
+button.danger { border-color: var(--sev-critical); color: var(--danger); }
+button.danger:hover:not(:disabled) { border-color: var(--danger); }
 
 /* ── Tables ── */
 table { width: 100%; border-collapse: collapse; }

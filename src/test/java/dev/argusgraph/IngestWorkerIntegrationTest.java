@@ -1,6 +1,8 @@
 package dev.argusgraph;
 
 import java.time.Duration;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 import org.junit.jupiter.api.Test;
@@ -116,6 +118,39 @@ class IngestWorkerIntegrationTest {
 		}
 	}
 
+	@Test
+	@SuppressWarnings("unchecked")
+	void statusEndpointTracksTriggeredFetchToCompletion() {
+		this.rest.postForEntity("/api/v1/ingest/jobs/osv?ecosystem=npm", null, Void.class);
+
+		await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+			Map<String, Object> status = this.rest.getForObject("/api/v1/ingest/jobs/status", Map.class);
+			List<Map<String, Object>> jobs = (List<Map<String, Object>>) status.get("jobs");
+			assertThat(jobs).anySatisfy(job -> {
+				assertThat(job).containsEntry("ecosystem", "npm").containsEntry("state", "COMPLETED");
+				assertThat(((Number) job.get("documentsPublished")).intValue()).isGreaterThan(0);
+			});
+			List<Map<String, Object>> queues = (List<Map<String, Object>>) status.get("queues");
+			assertThat(queues).extracting(q -> q.get("name"))
+				.containsExactly("ingest.osv", "ingest.osv.dlq", "ingest.embedding", "ingest.embedding.dlq");
+		});
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void statusEndpointReportsFailedFetch() {
+		this.rest.postForEntity("/api/v1/ingest/jobs/osv?ecosystem=explode", null, Void.class);
+
+		await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> {
+			Map<String, Object> status = this.rest.getForObject("/api/v1/ingest/jobs/status", Map.class);
+			List<Map<String, Object>> jobs = (List<Map<String, Object>>) status.get("jobs");
+			assertThat(jobs).anySatisfy(job -> {
+				assertThat(job).containsEntry("ecosystem", "explode").containsEntry("state", "FAILED");
+				assertThat((String) job.get("error")).isNotBlank();
+			});
+		});
+	}
+
 	private long count(String cypher) {
 		return this.neo4j.query(cypher).fetchAs(Long.class).one().orElse(0L);
 	}
@@ -136,6 +171,10 @@ class IngestWorkerIntegrationTest {
 						Thread.currentThread().interrupt();
 					}
 					return;
+				}
+				// "explode" exercises the FAILED job path of the status endpoint.
+				if ("explode".equals(ecosystem)) {
+					throw new IllegalStateException("stub OSV source exploded");
 				}
 				onDocument.accept(TRIGGERED_DOC);
 			};

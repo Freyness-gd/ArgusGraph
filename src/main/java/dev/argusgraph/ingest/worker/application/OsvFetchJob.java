@@ -1,7 +1,5 @@
 package dev.argusgraph.ingest.worker.application;
 
-import java.util.concurrent.atomic.AtomicInteger;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -16,6 +14,9 @@ import org.springframework.scheduling.annotation.Async;
  * Deliberately NOT component-scanned: registered as an explicit bean in
  * {@code IngestWorkerConfig} once both port adapters exist — keeps every commit's
  * application context loadable while the worker slice is built up task by task.
+ *
+ * <p>
+ * Job progress is tracked in the {@link IngestJobRegistry} for the dashboard's status endpoint.
  */
 @org.jmolecules.ddd.annotation.Service
 @RequiredArgsConstructor
@@ -26,19 +27,23 @@ public class OsvFetchJob {
 
 	private final RawDocumentPublisher publisher;
 
+	private final IngestJobRegistry registry;
+
 	@Async("ingestWorkerExecutor")
 	public void runOsv(String ecosystem) {
+		IngestJobRegistry.JobRecord job = this.registry.start(ecosystem);
 		log.info("OSV fetch started: ecosystem={}", ecosystem);
-		AtomicInteger published = new AtomicInteger();
 		try {
 			this.source.fetchEcosystem(ecosystem, document -> {
 				this.publisher.publish(IngestRouting.OSV_ROUTING_KEY, document);
-				published.incrementAndGet();
+				job.incrementPublished();
 			});
-			log.info("OSV fetch finished: ecosystem={} documentsPublished={}", ecosystem, published.get());
+			job.complete();
+			log.info("OSV fetch finished: ecosystem={} documentsPublished={}", ecosystem, job.documentsPublished());
 		}
 		catch (RuntimeException ex) {
-			log.error("OSV fetch failed: ecosystem={} documentsPublished={}", ecosystem, published.get(), ex);
+			job.fail(ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName());
+			log.error("OSV fetch failed: ecosystem={} documentsPublished={}", ecosystem, job.documentsPublished(), ex);
 		}
 	}
 

@@ -24,7 +24,7 @@ class OsvFetchJobTest {
 		};
 		RawDocumentPublisher publisher = (routingKey, document) -> published.add(routingKey + "|" + document);
 
-		new OsvFetchJob(source, publisher).runOsv("Maven");
+		new OsvFetchJob(source, publisher, new IngestJobRegistry()).runOsv("Maven");
 
 		assertThat(published).containsExactly("osv.raw|{\"id\":\"GHSA-aaaa\"}", "osv.raw|{\"id\":\"GHSA-bbbb\"}");
 	}
@@ -37,7 +37,7 @@ class OsvFetchJobTest {
 		RawDocumentPublisher publisher = (routingKey, document) -> {
 		};
 
-		assertThatCode(() -> new OsvFetchJob(source, publisher).runOsv("Maven")).doesNotThrowAnyException();
+		assertThatCode(() -> new OsvFetchJob(source, publisher, new IngestJobRegistry()).runOsv("Maven")).doesNotThrowAnyException();
 	}
 
 	@Test
@@ -54,7 +54,7 @@ class OsvFetchJobTest {
 			published.add(document);
 		};
 
-		assertThatCode(() -> new OsvFetchJob(source, publisher).runOsv("Maven")).doesNotThrowAnyException();
+		assertThatCode(() -> new OsvFetchJob(source, publisher, new IngestJobRegistry()).runOsv("Maven")).doesNotThrowAnyException();
 		assertThat(published).containsExactly("{\"id\":\"GHSA-aaaa\"}");
 	}
 

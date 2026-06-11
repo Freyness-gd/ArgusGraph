@@ -4,7 +4,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.core.task.TaskRejectedException;
 import org.springframework.http.ProblemDetail;
 
+import dev.argusgraph.ingest.worker.application.IngestJobRegistry;
 import dev.argusgraph.ingest.worker.application.OsvFetchJob;
+import dev.argusgraph.ingest.worker.application.QueueDepthProbe;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -21,7 +23,7 @@ class IngestJobControllerTest {
 	void delegatesTheEcosystemToTheFetchJob() {
 		OsvFetchJob job = mock(OsvFetchJob.class);
 
-		new IngestJobController(job).startOsvFetch("Maven");
+		new IngestJobController(job, new IngestJobRegistry(), mock(QueueDepthProbe.class)).startOsvFetch("Maven");
 
 		verify(job).runOsv("Maven");
 	}
@@ -30,7 +32,7 @@ class IngestJobControllerTest {
 	void saturatedExecutorMapsTo429() {
 		OsvFetchJob job = mock(OsvFetchJob.class);
 
-		ProblemDetail problem = new IngestJobController(job)
+		ProblemDetail problem = new IngestJobController(job, new IngestJobRegistry(), mock(QueueDepthProbe.class))
 			.handleWorkerSaturated(new TaskRejectedException("queue full"));
 
 		assertThat(problem.getStatus()).isEqualTo(429);

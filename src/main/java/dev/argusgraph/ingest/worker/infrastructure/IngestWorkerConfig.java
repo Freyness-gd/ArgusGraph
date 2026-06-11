@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
+import dev.argusgraph.ingest.worker.application.IngestJobRegistry;
 import dev.argusgraph.ingest.worker.application.OsvFetchJob;
 import dev.argusgraph.ingest.worker.application.OsvSource;
 import dev.argusgraph.ingest.worker.application.RawDocumentPublisher;
@@ -32,8 +33,13 @@ class IngestWorkerConfig {
 	}
 
 	@Bean
-	OsvFetchJob osvFetchJob(OsvSource source, RawDocumentPublisher publisher) {
-		return new OsvFetchJob(source, publisher);
+	IngestJobRegistry ingestJobRegistry() {
+		return new IngestJobRegistry();
+	}
+
+	@Bean
+	OsvFetchJob osvFetchJob(OsvSource source, RawDocumentPublisher publisher, IngestJobRegistry registry) {
+		return new OsvFetchJob(source, publisher, registry);
 	}
 
 }

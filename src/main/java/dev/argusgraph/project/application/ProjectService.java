@@ -47,6 +47,11 @@ public class ProjectService {
 		}
 		Project saved = this.projects.save(new Project(null, resolved, Instant.now(),
 				sbom.purls().stream().map(ProjectDependency::new).collect(Collectors.toSet())));
+		// Mirror the SBOM's dependency graph into Neo4j so the inference engine can traverse it.
+		// Idempotent upserts: re-importing the same SBOM never duplicates nodes or edges.
+		for (SbomParser.DependencyEdge edge : sbom.edges()) {
+			this.graph.linkDependency(edge.fromPurl(), edge.toPurl(), null);
+		}
 		return new ImportResult(saved.id(), saved.name(), saved.dependencies().size(), sbom.skipped());
 	}
 

@@ -2,10 +2,12 @@ package dev.argusgraph.graph.infrastructure.persistence;
 
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -18,6 +20,7 @@ import dev.argusgraph.graph.Vulnerability;
 import dev.argusgraph.graph.application.GraphRepository;
 import dev.argusgraph.graph.application.GraphStats;
 import dev.argusgraph.graph.application.PackageVersionDetails;
+import dev.argusgraph.graph.application.VulnerabilityPage;
 
 /**
  * Cypher adapter for the {@link GraphRepository} port. Deliberately uses
@@ -118,6 +121,23 @@ class Neo4jGraphRepository implements GraphRepository {
 	private static final String FETCH_SEVERITY_BUCKETS = """
 			MATCH (v:Vulnerability)
 			RETURN coalesce(v.severity, 'NONE') AS severity, count(v) AS n
+			""";
+
+	private static final String VULNERABILITY_FILTER = """
+			MATCH (v:Vulnerability)
+			WHERE ($severity IS NULL OR v.severity = $severity)
+			  AND ($q IS NULL OR toLower(v.id) CONTAINS $q OR toLower(coalesce(v.summary, '')) CONTAINS $q)
+			""";
+
+	private static final String FIND_VULNERABILITIES = VULNERABILITY_FILTER + """
+			RETURN v.id AS id, v.severity AS severity, v.cvssScore AS cvssScore,
+			       v.summary AS summary, v.published AS published
+			ORDER BY v.published IS NULL, v.published DESC
+			SKIP $skip LIMIT $limit
+			""";
+
+	private static final String COUNT_VULNERABILITIES = VULNERABILITY_FILTER + """
+			RETURN count(v) AS total
 			""";
 
 	private final Neo4jClient neo4j;
@@ -221,6 +241,29 @@ class Neo4jGraphRepository implements GraphRepository {
 				((Number) counts.get("vulnerabilities")).longValue(), bySeverity);
 	}
 
+	@Override
+	public VulnerabilityPage findVulnerabilities(String severity, String q, int page, int size) {
+		Map<String, Object> parameters = new HashMap<>();
+		parameters.put("severity", severity);
+		parameters.put("q", q == null ? null : q.toLowerCase(Locale.ROOT));
+		parameters.put("skip", (long) page * size);
+		parameters.put("limit", (long) size);
+		List<VulnerabilityPage.Item> items = this.neo4j.query(FIND_VULNERABILITIES)
+			.bindAll(parameters)
+			.fetch()
+			.all()
+			.stream()
+			.map(row -> new VulnerabilityPage.Item((String) row.get("id"), (String) row.get("severity"),
+					toDouble(row.get("cvssScore")), (String) row.get("summary"), toInstant(row.get("published"))))
+			.toList();
+		long total = this.neo4j.query(COUNT_VULNERABILITIES)
+			.bindAll(parameters)
+			.fetchAs(Long.class)
+			.one()
+			.orElse(0L);
+		return new VulnerabilityPage(items, page, size, total);
+	}
+
 	@SuppressWarnings("unchecked")
 	private PackageVersionDetails toDetails(Map<String, Object> row) {
 		List<Map<String, Object>> dependencies = (List<Map<String, Object>>) row.get("dependencies");
@@ -242,6 +285,16 @@ class Neo4jGraphRepository implements GraphRepository {
 
 	private static Double toDouble(Object value) {
 		return value == null ? null : ((Number) value).doubleValue();
+	}
+
+	private static Instant toInstant(Object value) {
+		if (value == null) {
+			return null;
+		}
+		if (value instanceof ZonedDateTime zoned) {
+			return zoned.toInstant();
+		}
+		return ((java.time.OffsetDateTime) value).toInstant();
 	}
 
 	private static List<String> emptyToNull(List<String> values) {

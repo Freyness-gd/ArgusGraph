@@ -1,6 +1,7 @@
 package dev.argusgraph.graph.application;
 
 import java.util.List;
+import java.util.Locale;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,8 @@ import dev.argusgraph.shared.exception.ResourceNotFoundException;
 @RequiredArgsConstructor
 @Transactional
 public class GraphService implements GraphAPI {
+
+	private static final int MAX_PAGE_SIZE = 100;
 
 	private final GraphRepository graph;
 
@@ -94,6 +97,17 @@ public class GraphService implements GraphAPI {
 	@Transactional(readOnly = true)
 	public GraphStats getStats() {
 		return this.graph.fetchStats();
+	}
+
+	/** One page of the vulnerability browse table; blank filters mean "all". */
+	@Transactional(readOnly = true)
+	public VulnerabilityPage findVulnerabilities(String severity, String q, int page, int size) {
+		String severityFilter = (severity == null || severity.isBlank()) ? null
+				: severity.trim().toUpperCase(Locale.ROOT);
+		String text = (q == null || q.isBlank()) ? null : q.trim();
+		int safePage = Math.max(page, 0);
+		int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+		return this.graph.findVulnerabilities(severityFilter, text, safePage, safeSize);
 	}
 
 	private static List<Vulnerability.Severity> toSeverities(VulnerabilityInput input) {

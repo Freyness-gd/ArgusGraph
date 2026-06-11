@@ -39,4 +39,12 @@ public class GraphController {
 		return GraphStatsResponse.from(this.graph.getStats());
 	}
 
+	@GetMapping("/vulnerabilities")
+	@Operation(summary = "Page through vulnerabilities, newest first, with optional severity and text filters")
+	public VulnerabilityPageResponse listVulnerabilities(@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "25") int size, @RequestParam(required = false) String severity,
+			@RequestParam(required = false) String q) {
+		return VulnerabilityPageResponse.from(this.graph.findVulnerabilities(severity, q, page, size));
+	}
+
 }

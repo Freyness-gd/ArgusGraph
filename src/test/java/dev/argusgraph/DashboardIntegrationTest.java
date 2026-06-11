@@ -53,6 +53,38 @@ class DashboardIntegrationTest {
 		assertThat(bucket(afterBuckets, "NONE") - bucket(beforeBuckets, "NONE")).isEqualTo(1);
 	}
 
+	@Test
+	@SuppressWarnings("unchecked")
+	void vulnerabilityListFiltersSearchesAndPages() {
+		ingestVulnerability("ARGUS-LIST-A", "browse-marker alpha", CRITICAL_VECTOR, "2026-03-01T00:00:00Z");
+		ingestVulnerability("ARGUS-LIST-B", "browse-marker beta", null, "2026-02-01T00:00:00Z");
+		ingestVulnerability("ARGUS-LIST-C", "browse-marker gamma", null, "2026-01-01T00:00:00Z");
+
+		// q scopes everything to this test's data; newest published first.
+		Map<String, Object> all = this.rest.getForObject("/api/v1/graph/vulnerabilities?q=browse-marker",
+				Map.class);
+		assertThat(longOf(all, "total")).isEqualTo(3);
+		List<Map<String, Object>> items = (List<Map<String, Object>>) all.get("items");
+		assertThat(items).extracting(i -> i.get("id"))
+			.containsExactly("ARGUS-LIST-A", "ARGUS-LIST-B", "ARGUS-LIST-C");
+
+		// Severity filter is case-normalised and narrows to the critical advisory.
+		Map<String, Object> critical = this.rest
+			.getForObject("/api/v1/graph/vulnerabilities?q=browse-marker&severity=critical", Map.class);
+		assertThat(longOf(critical, "total")).isEqualTo(1);
+		assertThat(((List<Map<String, Object>>) critical.get("items")).get(0))
+			.containsEntry("id", "ARGUS-LIST-A")
+			.containsEntry("severity", "CRITICAL")
+			.containsEntry("cvssScore", 10.0);
+
+		// Page 2 of size 2 holds the single remaining row.
+		Map<String, Object> page2 = this.rest
+			.getForObject("/api/v1/graph/vulnerabilities?q=browse-marker&page=1&size=2", Map.class);
+		assertThat(longOf(page2, "total")).isEqualTo(3);
+		assertThat(((List<Map<String, Object>>) page2.get("items"))).extracting(i -> i.get("id"))
+			.containsExactly("ARGUS-LIST-C");
+	}
+
 	private void ingestPackageVersion(String purl) {
 		ResponseEntity<Map> response = this.rest.postForEntity("/api/v1/ingest/package-versions",
 				Map.of("purl", purl), Map.class);

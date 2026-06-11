@@ -1,11 +1,10 @@
 package dev.argusgraph.ingest.worker.infrastructure.amqp;
 
+import dev.argusgraph.ingest.worker.application.IngestRouting;
+import dev.argusgraph.ingest.worker.application.OsvDocumentHandler;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
-
-import dev.argusgraph.ingest.worker.application.IngestRouting;
-import dev.argusgraph.ingest.worker.application.OsvDocumentHandler;
 
 /**
  * AMQP edge of the consume side: one raw OSV JSON document per message, delegated
@@ -22,7 +21,7 @@ class OsvQueueListener {
 
 	private final OsvDocumentHandler handler;
 
-	@RabbitListener(queues = IngestRouting.OSV_QUEUE)
+	@RabbitListener(queues = IngestRouting.OSV_QUEUE, concurrency = "4-8")
 	void onOsvDocument(String rawDocument) {
 		this.handler.handle(rawDocument);
 	}

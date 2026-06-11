@@ -34,10 +34,13 @@ spring:
         default-requeue-rejected: false
         retry:
           enabled: true
-          max-retries: 2          # 1 initial attempt + 2 retries = 3 total deliveries (Boot 4 renamed max-attempts)
+          max-retries: 5          # 1 initial attempt + 5 retries = 6 total deliveries (Boot 4 renamed max-attempts)
           initial-interval: 1s
           multiplier: 3
           max-interval: 10s
+        concurrency: 4
+        max-concurrency: 8
+        prefetch: 10
 
   # We start compose manually; don't let Spring auto-manage it.
   docker:

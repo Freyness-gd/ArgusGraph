@@ -45,6 +45,28 @@ class SbomParserTest {
 	}
 
 	@Test
+	void extractsDependencyEdgesResolvingBomRefsToPurls() {
+		String sbom = """
+				{"bomFormat":"CycloneDX","specVersion":"1.5",
+				 "metadata":{"component":{"bom-ref":"root","name":"app"}},
+				 "components":[
+				   {"bom-ref":"a","purl":"pkg:maven/g/a@1.0.0"},
+				   {"bom-ref":"b","purl":"pkg:maven/g/b@2.0.0"},
+				   {"purl":"pkg:maven/g/c@3.0.0"}
+				 ],
+				 "dependencies":[
+				   {"ref":"root","dependsOn":["a"]},
+				   {"ref":"a","dependsOn":["b","pkg:maven/g/c@3.0.0"]}
+				 ]}
+				""";
+		SbomParser.ParsedSbom parsed = new SbomParser().parse(sbom);
+
+		assertThat(parsed.edges()).containsExactlyInAnyOrder(
+				new SbomParser.DependencyEdge("pkg:maven/g/a@1.0.0", "pkg:maven/g/b@2.0.0"),
+				new SbomParser.DependencyEdge("pkg:maven/g/a@1.0.0", "pkg:maven/g/c@3.0.0"));
+	}
+
+	@Test
 	void rejectsNonJsonAndNonSbomBodies() {
 		assertThatThrownBy(() -> this.parser.parse("definitely not json"))
 			.isInstanceOf(BusinessRuleException.class)

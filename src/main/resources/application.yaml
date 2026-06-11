@@ -42,8 +42,13 @@ spring:
   # ── Projects datasource (H2) ─────────────────────────────────────────────────
   # Imported SBOM projects live OUTSIDE the graph in an embedded H2 file. Tests
   # override to in-memory. Schema bootstraps from schema.sql (IF NOT EXISTS).
+  # AUTO_SERVER=TRUE: H2 file mode is otherwise single-process — the first opener
+  # takes an exclusive lock and any second connection (a duplicate run, a devtools
+  # restart race, an IDE DB console) fails with "file is locked" [90020], which
+  # cascades into the JDBC infrastructure and breaks repository wiring. AUTO_SERVER
+  # lets the first process serve the file to later connections instead of locking.
   datasource:
-    url: ${PROJECTS_DB_URL:jdbc:h2:file:./data/projects}
+    url: ${PROJECTS_DB_URL:jdbc:h2:file:./data/projects;AUTO_SERVER=TRUE}
     username: sa
     password: ""
     driver-class-name: org.h2.Driver

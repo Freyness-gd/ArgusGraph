@@ -10,5 +10,5 @@ export const toast = {
   },
   error(err) { this.show("error", err.title || "Error", err.detail || String(err)); },
   ok(title) { this.show("ok", title, ""); },
-  dismiss() { this.current = null; },
+  dismiss() { clearTimeout(this.timer); this.current = null; },
 };

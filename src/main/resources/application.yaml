@@ -49,8 +49,6 @@ app:
 server:
   port: 8080
   shutdown: graceful
-  servlet:
-    context-path: /api/v1
 
 # ── Actuator ─────────────────────────────────────────────────────────────────
 management:
@@ -64,8 +62,8 @@ management:
         enabled: true
 
 # ── OpenAPI / Swagger UI ──────────────────────────────────────────────────────
-# Swagger UI:  http://localhost:8080/api/v1/swagger-ui.html
-# OpenAPI doc: http://localhost:8080/api/v1/v3/api-docs
+# Swagger UI:  http://localhost:8080/swagger-ui.html
+# OpenAPI doc: http://localhost:8080/v3/api-docs
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

@@ -18,6 +18,6 @@ COPY --from=build /build/build/libs/*.jar app.jar
 EXPOSE 8080
 ENV SPRING_PROFILES_ACTIVE=dev
 HEALTHCHECK --interval=15s --timeout=5s --start-period=60s --retries=5 \
-  CMD curl -fsS http://localhost:8080/api/v1/actuator/health/readiness || exit 1
+  CMD curl -fsS http://localhost:8080/actuator/health/readiness || exit 1
 USER nobody
 ENTRYPOINT ["java", "-jar", "/app/app.jar"]

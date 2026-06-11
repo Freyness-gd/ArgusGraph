@@ -45,19 +45,19 @@ class IngestGraphIntegrationTest {
 	@SuppressWarnings("unchecked")
 	void ingestsOsvDocumentAndReadsItBackAsAGraph() {
 		// Two package versions.
-		ResponseEntity<Map> log4j = this.rest.postForEntity("/ingest/package-versions",
+		ResponseEntity<Map> log4j = this.rest.postForEntity("/api/v1/ingest/package-versions",
 				Map.of("purl", LOG4J_PURL), Map.class);
 		assertThat(log4j.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 		assertThat(log4j.getBody()).containsEntry("purl", LOG4J_PURL)
 			.containsEntry("packagePurl", "pkg:maven/org.apache.logging.log4j/log4j-core")
 			.containsEntry("version", "2.14.1");
 
-		ResponseEntity<Map> app = this.rest.postForEntity("/ingest/package-versions",
+		ResponseEntity<Map> app = this.rest.postForEntity("/api/v1/ingest/package-versions",
 				Map.of("purl", APP_PURL), Map.class);
 		assertThat(app.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
 		// app -[:DEPENDS_ON]-> log4j
-		ResponseEntity<Void> dependency = this.rest.postForEntity("/ingest/dependencies",
+		ResponseEntity<Void> dependency = this.rest.postForEntity("/api/v1/ingest/dependencies",
 				Map.of("fromPurl", APP_PURL, "toPurl", LOG4J_PURL, "scope", "compile"), Void.class);
 		assertThat(dependency.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
@@ -78,7 +78,7 @@ class IngestGraphIntegrationTest {
 				"references",
 				List.of(Map.of("type", "ADVISORY", "url", "https://nvd.nist.gov/vuln/detail/CVE-2021-44228")));
 
-		ResponseEntity<Map> vulnerability = this.rest.postForEntity("/ingest/vulnerabilities", osv, Map.class);
+		ResponseEntity<Map> vulnerability = this.rest.postForEntity("/api/v1/ingest/vulnerabilities", osv, Map.class);
 		assertThat(vulnerability.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 		assertThat(vulnerability.getBody()).containsEntry("id", ADVISORY_ID)
 			.containsEntry("severity", "CRITICAL")
@@ -96,7 +96,7 @@ class IngestGraphIntegrationTest {
 		assertThat(rangeEdges).isEqualTo(1);
 
 		// Read side: log4j carries the vulnerability, the app carries the dependency.
-		ResponseEntity<Map> log4jView = this.rest.getForEntity("/graph/package-versions?purl={purl}",
+		ResponseEntity<Map> log4jView = this.rest.getForEntity("/api/v1/graph/package-versions?purl={purl}",
 				Map.class, LOG4J_PURL);
 		assertThat(log4jView.getStatusCode()).isEqualTo(HttpStatus.OK);
 		List<Map<String, Object>> vulnerabilities = (List<Map<String, Object>>) log4jView.getBody()
@@ -104,7 +104,7 @@ class IngestGraphIntegrationTest {
 		assertThat(vulnerabilities).extracting(v -> v.get("id")).containsExactly(ADVISORY_ID);
 		assertThat(vulnerabilities.get(0)).containsEntry("severity", "CRITICAL").containsEntry("cvssScore", 10.0);
 
-		ResponseEntity<Map> appView = this.rest.getForEntity("/graph/package-versions?purl={purl}", Map.class,
+		ResponseEntity<Map> appView = this.rest.getForEntity("/api/v1/graph/package-versions?purl={purl}", Map.class,
 				APP_PURL);
 		assertThat(appView.getStatusCode()).isEqualTo(HttpStatus.OK);
 		List<Map<String, Object>> dependencies = (List<Map<String, Object>>) appView.getBody().get("dependencies");
@@ -122,12 +122,12 @@ class IngestGraphIntegrationTest {
 
 		// Batch ingest twice, the direct AFFECTS endpoint once — all idempotent MERGEs.
 		for (int i = 0; i < 2; i++) {
-			ResponseEntity<List> batch = this.rest.postForEntity("/ingest/vulnerabilities/batch", List.of(osv, osv),
+			ResponseEntity<List> batch = this.rest.postForEntity("/api/v1/ingest/vulnerabilities/batch", List.of(osv, osv),
 					List.class);
 			assertThat(batch.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 			assertThat(batch.getBody()).hasSize(2);
 		}
-		this.rest.postForEntity("/ingest/affects", Map.of("vulnerabilityId", advisory, "purl", purl), Void.class);
+		this.rest.postForEntity("/api/v1/ingest/affects", Map.of("vulnerabilityId", advisory, "purl", purl), Void.class);
 
 		assertThat(count("MATCH (p:Package {purl: 'pkg:npm/lodash'}) RETURN count(p)")).isEqualTo(1);
 		assertThat(count("MATCH (v:PackageVersion {purl: 'pkg:npm/lodash@4.17.21'}) RETURN count(v)")).isEqualTo(1);
@@ -140,21 +140,21 @@ class IngestGraphIntegrationTest {
 	@Test
 	void enforcesTheErrorContract() {
 		// 400 — bean validation: OSV requires id + modified.
-		ResponseEntity<Map> blank = this.rest.postForEntity("/ingest/vulnerabilities", Map.of(), Map.class);
+		ResponseEntity<Map> blank = this.rest.postForEntity("/api/v1/ingest/vulnerabilities", Map.of(), Map.class);
 		assertThat(blank.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
 
 		// 409 — malformed purl violates a domain rule.
-		ResponseEntity<Map> malformed = this.rest.postForEntity("/ingest/package-versions",
+		ResponseEntity<Map> malformed = this.rest.postForEntity("/api/v1/ingest/package-versions",
 				Map.of("purl", "not a purl"), Map.class);
 		assertThat(malformed.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
 		// 409 — a PackageVersion needs a version.
-		ResponseEntity<Map> versionless = this.rest.postForEntity("/ingest/package-versions",
+		ResponseEntity<Map> versionless = this.rest.postForEntity("/api/v1/ingest/package-versions",
 				Map.of("purl", "pkg:maven/com.acme/lib"), Map.class);
 		assertThat(versionless.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
 		// 404 — reading a purl that was never ingested.
-		ResponseEntity<Map> unknown = this.rest.getForEntity("/graph/package-versions?purl={purl}", Map.class,
+		ResponseEntity<Map> unknown = this.rest.getForEntity("/api/v1/graph/package-versions?purl={purl}", Map.class,
 				"pkg:maven/com.acme/ghost@9.9.9");
 		assertThat(unknown.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
 	}

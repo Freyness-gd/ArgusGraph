@@ -61,7 +61,7 @@ class IngestWorkerIntegrationTest {
 
 	@Test
 	void restTriggerRunsTheWholePipelineIntoTheGraph() {
-		ResponseEntity<Void> response = this.rest.postForEntity("/ingest/jobs/osv?ecosystem=npm", null, Void.class);
+		ResponseEntity<Void> response = this.rest.postForEntity("/api/v1/ingest/jobs/osv?ecosystem=npm", null, Void.class);
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
 
 		await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> assertThat(count("""
@@ -89,7 +89,7 @@ class IngestWorkerIntegrationTest {
 
 	@Test
 	void blankEcosystemIsRejectedWith400() {
-		ResponseEntity<ProblemDetail> response = this.rest.postForEntity("/ingest/jobs/osv?ecosystem=", null,
+		ResponseEntity<ProblemDetail> response = this.rest.postForEntity("/api/v1/ingest/jobs/osv?ecosystem=", null,
 				ProblemDetail.class);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
@@ -100,11 +100,11 @@ class IngestWorkerIntegrationTest {
 		try {
 			// 1 running + 4 queued fill the executor (see IngestWorkerConfig); the 6th must be rejected.
 			for (int i = 0; i < 5; i++) {
-				assertThat(this.rest.postForEntity("/ingest/jobs/osv?ecosystem=blocking", null, Void.class)
+				assertThat(this.rest.postForEntity("/api/v1/ingest/jobs/osv?ecosystem=blocking", null, Void.class)
 					.getStatusCode()).isEqualTo(HttpStatus.ACCEPTED);
 			}
 
-			ResponseEntity<ProblemDetail> rejected = this.rest.postForEntity("/ingest/jobs/osv?ecosystem=blocking",
+			ResponseEntity<ProblemDetail> rejected = this.rest.postForEntity("/api/v1/ingest/jobs/osv?ecosystem=blocking",
 					null, ProblemDetail.class);
 
 			assertThat(rejected.getStatusCode()).isEqualTo(HttpStatus.TOO_MANY_REQUESTS);

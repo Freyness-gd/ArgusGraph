@@ -9,7 +9,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * OpenAPI / Swagger-UI metadata. Swagger UI is served at {@code /swagger-ui.html} and the
- * spec at {@code /v3/api-docs} (both under the {@code /api/v1} context path).
+ * spec at {@code /v3/api-docs} (served at the server root; the REST API itself is prefixed {@code /api/v1} by {@code WebConfig}).
  *
  * <p>
  * A {@code bearerAuth} scheme is pre-declared so that, once you enable JWT security in

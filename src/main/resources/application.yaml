@@ -38,9 +38,6 @@ spring:
           initial-interval: 1s
           multiplier: 3
           max-interval: 10s
-        concurrency: 4
-        max-concurrency: 8
-        prefetch: 10
 
   # ── Projects datasource (H2) ─────────────────────────────────────────────────
   # Imported SBOM projects live OUTSIDE the graph in an embedded H2 file. Tests
@@ -50,6 +47,10 @@ spring:
     username: sa
     password: ""
     driver-class-name: org.h2.Driver
+
+  sql:
+    init:
+      mode: always
 
   # We start compose manually; don't let Spring auto-manage it.
   docker:

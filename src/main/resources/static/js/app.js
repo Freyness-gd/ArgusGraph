@@ -3,13 +3,14 @@ import { StatsView } from "./views/stats.js";
 import { BrowseView } from "./views/browse.js";
 import { LookupView } from "./views/lookup.js";
 import { JobsView } from "./views/jobs.js";
+import { ProjectsView, ProjectDetailView } from "./views/projects.js";
 
-/* The future Projects tab is one more entry here — nothing else changes. */
 const NAV = [
   { route: "/stats", label: "Stats" },
   { route: "/browse", label: "Browse" },
   { route: "/lookup", label: "Lookup" },
   { route: "/jobs", label: "Jobs" },
+  { route: "/projects", label: "Projects" },
 ];
 
 const Layout = {
@@ -39,4 +40,6 @@ m.route(document.body, "/stats", {
   "/browse": wrap(BrowseView),
   "/lookup": wrap(LookupView),
   "/jobs": wrap(JobsView),
+  "/projects": wrap(ProjectsView),
+  "/projects/:id": wrap(ProjectDetailView),
 });

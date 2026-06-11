@@ -116,6 +116,7 @@ export const ProjectDetailView = {
     const d = this.details;
     const affected = d.dependencies.filter((x) => x.verdict === "AFFECTED");
     const unknown = d.dependencies.filter((x) => x.verdict === "UNKNOWN");
+    const transitivelyExposed = d.dependencies.filter((x) => x.verdict === "TRANSITIVELY_AFFECTED");
     return [
       m("h1", d.name),
       m("p.muted", [m(m.route.Link, { href: "/projects" }, "← projects"),
@@ -124,6 +125,7 @@ export const ProjectDetailView = {
         m(".card-label", "Match summary"),
         m(".badges", [
           m("span.badge.verdict-affected", `AFFECTED ${d.summary.affected}`),
+          m("span.badge.verdict-transitive", `TRANSITIVE ${d.summary.transitivelyAffected}`),
           m("span.badge.verdict-clean", `CLEAN ${d.summary.clean}`),
           m("span.badge.verdict-unknown", `UNKNOWN ${d.summary.unknown}`),
           ...Object.entries(d.summary.bySeverity || {}).map(([severity, count]) =>
@@ -163,6 +165,24 @@ export const ProjectDetailView = {
                       v.severity || "NONE"),
                   m("span.mono", ` ${v.id} `),
                   m("span.muted", v.cvssScore == null ? "" : `(${v.cvssScore.toFixed(1)}) `),
+                  m("span.muted", v.summary || ""),
+                ]))),
+              ]))),
+            ]),
+      ]),
+      m(".card", [
+        m(".card-label", `Transitively exposed (${transitivelyExposed.length})`),
+        m("p.muted", "Dependencies that are clean themselves but pull in a vulnerable package."),
+        transitivelyExposed.length === 0
+          ? m("p.muted", "None.")
+          : m("table", [
+              m("thead", m("tr", [m("th", "Dependency"), m("th", "Exposed to")])),
+              m("tbody", transitivelyExposed.map((dep) => m("tr", [
+                m("td.mono", dep.purl),
+                m("td", dep.transitive.map((v) => m("p", [
+                  m("span.badge", { class: "sev-" + (v.severity || "none").toLowerCase() }, v.severity || "NONE"),
+                  m("span.mono", ` ${v.id} `),
+                  m("span.muted", `depth ${v.depth} `),
                   m("span.muted", v.summary || ""),
                 ]))),
               ]))),

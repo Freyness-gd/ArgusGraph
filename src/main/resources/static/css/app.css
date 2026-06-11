@@ -172,6 +172,7 @@ a { color: var(--accent); }
 
 /* ── Project verdicts ── */
 .badge.verdict-affected { background: var(--sev-critical); }
+.badge.verdict-transitive { background: #bb8009; }
 .badge.verdict-unknown { background: var(--sev-none); color: var(--muted); }
 .badge.verdict-clean { background: #238636; }
 

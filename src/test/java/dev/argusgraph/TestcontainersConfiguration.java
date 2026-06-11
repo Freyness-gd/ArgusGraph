@@ -3,6 +3,7 @@ package dev.argusgraph;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
+import org.springframework.test.context.DynamicPropertyRegistrar;
 import org.testcontainers.containers.Neo4jContainer;
 import org.testcontainers.containers.RabbitMQContainer;
 import org.testcontainers.utility.DockerImageName;
@@ -30,6 +31,12 @@ class TestcontainersConfiguration {
 	@ServiceConnection
 	RabbitMQContainer rabbitMqContainer() {
 		return new RabbitMQContainer(DockerImageName.parse("rabbitmq:4-management"));
+	}
+
+	@Bean
+	DynamicPropertyRegistrar projectsInMemoryDatasource() {
+		// File-mode H2 would lock against a concurrently running app and litter ./data.
+		return registry -> registry.add("spring.datasource.url", () -> "jdbc:h2:mem:it;DB_CLOSE_DELAY=-1");
 	}
 
 }

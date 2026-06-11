@@ -8,10 +8,10 @@ to scraper workers and the logic-based inference engine from the project proposa
 ## Phases
 
 - [x] **Phase 1: Skeleton** — rename to ArgusGraph, bootstrap Neo4j, working ingest → graph pipeline.
-- [ ] **Phase 2: Data import** — load real source data (OSV/NVD/GHSA/deps.dev dumps) through the ingest path.
-- [ ] **Phase 3: Scraper workers** — deployable workers that scrape/poll the sources continuously.
-- [ ] **Phase 4: Inference engine** — logic-based KG component deriving transitive exposure.
-- [ ] **Phase 5: SBOM upload + GUI** — load a project, view its dependency graph and exposure.
+- [x] **Phase 2: Data import** — OSV-schema ingest, CVSS derivation, embeddings, RabbitMQ worker. (Gap: UNWIND bulk path.)
+- [~] **Phase 3: Scraper workers** — partial: manual OSV fetch trigger, job registry/status, graph reset. (No continuous polling yet.)
+- [~] **Phase 4: Inference engine** — slice 1 (R1 transitive exposure) shipped; R2 range resolution + deps.dev next.
+- [~] **Phase 5: SBOM upload + GUI** — Mithril dashboard + project import + transitive exposure card shipped ahead of order.
 
 ## Phase Details
 
@@ -55,8 +55,8 @@ exposure in a minimal UI.
 
 | Phase | Plans Complete | Status      | Completed  |
 |-------|----------------|-------------|------------|
-| 1. Skeleton        | done  | Done        | 2026-06-10 |
-| 2. Data import     | 0/TBD | Not started | -          |
-| 3. Scraper workers | 0/TBD | Not started | -          |
-| 4. Inference engine| 0/TBD | Not started | -          |
-| 5. SBOM + GUI      | 0/TBD | Not started | -          |
+| 1. Skeleton        | done  | Done            | 2026-06-10 |
+| 2. Data import     | done  | Done (UNWIND gap)| 2026-06-11 |
+| 3. Scraper workers | —     | Partial         | -          |
+| 4. Inference engine| 1/N   | Slice 1 (R1) done| 2026-06-12 |
+| 5. SBOM + GUI      | —     | Substantially done | 2026-06-11 |

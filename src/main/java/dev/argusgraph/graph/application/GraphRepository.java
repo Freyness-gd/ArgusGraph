@@ -55,9 +55,9 @@ public interface GraphRepository {
 
 	/**
 	 * Delete every node and relationship in batched implicit transactions; uniqueness
-	 * constraints survive. Returns the number of nodes deleted. MUST be called outside
-	 * an explicit transaction — {@code CALL ... IN TRANSACTIONS} only runs in implicit
-	 * (auto-commit) transactions.
+	 * constraints survive. Returns the exact number of nodes deleted (driver counters).
+	 * MUST be called outside an explicit transaction — {@code CALL ... IN TRANSACTIONS}
+	 * only runs in implicit (auto-commit) transactions.
 	 */
 	long wipeAll();
 

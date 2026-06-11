@@ -142,10 +142,6 @@ class Neo4jGraphRepository implements GraphRepository {
 			RETURN count(v) AS total
 			""";
 
-	private static final String COUNT_NODES = """
-			MATCH (n) RETURN count(n) AS total
-			""";
-
 	private static final String WIPE_ALL = """
 			MATCH (n)
 			CALL {
@@ -282,13 +278,13 @@ class Neo4jGraphRepository implements GraphRepository {
 
 	@Override
 	public long wipeAll() {
-		long total = this.neo4j.query(COUNT_NODES).fetchAs(Long.class).one().orElse(0L);
 		// CALL { ... } IN TRANSACTIONS requires an implicit (auto-commit) transaction.
 		// Neo4jClient always uses managed/explicit transactions, so the raw Driver is used here.
+		// The wipe also removes Spring Modulith event-publication nodes (they live in the same
+		// database) — intended for a full reset.
 		try (Session session = this.driver.session()) {
-			session.run(WIPE_ALL).consume();
+			return session.run(WIPE_ALL).consume().counters().nodesDeleted();
 		}
-		return total;
 	}
 
 	@SuppressWarnings("unchecked")

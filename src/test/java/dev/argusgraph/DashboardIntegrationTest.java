@@ -116,7 +116,11 @@ class DashboardIntegrationTest {
 		ingestPackageVersion("pkg:maven/dev.argusgraph.reset/lib@1.0.0");
 		ingestVulnerability("ARGUS-RESET-1", "reset marker", null, "2026-01-01T00:00:00Z");
 
-		ResponseEntity<Map> reset = this.rest.postForEntity("/api/v1/graph/reset", null, Map.class);
+		ResponseEntity<Map> rejected = this.rest.postForEntity("/api/v1/graph/reset",
+				Map.of("confirm", "nope"), Map.class);
+		assertThat(rejected.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+
+		ResponseEntity<Map> reset = this.rest.postForEntity("/api/v1/graph/reset", Map.of("confirm", "WIPE"), Map.class);
 		assertThat(reset.getStatusCode()).isEqualTo(HttpStatus.OK);
 		assertThat(longOf(reset.getBody(), "nodesDeleted")).isGreaterThanOrEqualTo(3);
 

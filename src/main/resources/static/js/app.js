@@ -33,7 +33,7 @@ const Layout = {
   },
 };
 
-const wrap = (component) => ({ render: () => m(Layout, m(component)) });
+const wrap = (component) => ({ render: (vnode) => m(Layout, m(component, vnode.attrs)) });
 
 m.route(document.body, "/stats", {
   "/stats": wrap(StatsView),

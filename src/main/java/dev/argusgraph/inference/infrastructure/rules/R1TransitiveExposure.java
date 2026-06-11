@@ -13,27 +13,27 @@ import dev.argusgraph.inference.application.InferenceScope;
 @Component
 public class R1TransitiveExposure implements InferenceRule {
 
-    private static final int VERSION = 1;
+	private static final int VERSION = 1;
 
-    private final InferenceRepository repository;
+	private final InferenceRepository repository;
 
-    public R1TransitiveExposure(InferenceRepository repository) {
-        this.repository = repository;
-    }
+	public R1TransitiveExposure(InferenceRepository repository) {
+		this.repository = repository;
+	}
 
-    @Override
-    public String name() {
-        return "R1";
-    }
+	@Override
+	public String name() {
+		return "R1";
+	}
 
-    @Override
-    public int version() {
-        return VERSION;
-    }
+	@Override
+	public int version() {
+		return VERSION;
+	}
 
-    @Override
-    public long apply(InferenceScope scope) {
-        return this.repository.writeR1Transitive(scope.sourcePurls(), VERSION);
-    }
+	@Override
+	public long apply(InferenceScope scope) {
+		return this.repository.writeR1Transitive(scope.sourcePurls(), VERSION);
+	}
 
 }

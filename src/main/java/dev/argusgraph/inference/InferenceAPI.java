@@ -13,25 +13,25 @@ import org.jmolecules.ddd.annotation.Service;
 @Service
 public interface InferenceAPI {
 
-    /** Re-derive every rule across the whole graph (delete derived edges, rebuild). Returns edges written. */
-    long recomputeAll();
+	/** Re-derive every rule across the whole graph (delete derived edges, rebuild). Returns edges written. */
+	long recomputeAll();
 
-    /** Run derivation scoped to the given source package-version purls (incremental). Returns edges written. */
-    long runFor(Set<String> sourcePurls);
+	/** Run derivation scoped to the given source package-version purls (incremental). Returns edges written. */
+	long runFor(Set<String> sourcePurls);
 
-    /** Transitive vulnerability exposure for each of the given package-version purls. */
-    List<TransitiveHit> transitiveExposure(Collection<String> purls);
+	/** Transitive vulnerability exposure for each of the given package-version purls. */
+	List<TransitiveHit> transitiveExposure(Collection<String> purls);
 
-    /** Event published by other modules when new DEPENDS_ON edges land for a set of purls. */
-    record DependenciesLinked(Long projectId, Set<String> purls) {
-    }
+	/** Event published by other modules when new DEPENDS_ON edges land for a set of purls. */
+	record DependenciesLinked(Long projectId, Set<String> purls) {
+	}
 
-    /** Transitive exposure for one source purl. */
-    record TransitiveHit(String purl, List<TransitiveVuln> vulnerabilities) {
-    }
+	/** Transitive exposure for one source purl. */
+	record TransitiveHit(String purl, List<TransitiveVuln> vulnerabilities) {
+	}
 
-    /** One vulnerability reaching a source purl transitively, with the shortest dependency depth. */
-    record TransitiveVuln(String id, String severity, Double cvssScore, String summary, int depth) {
-    }
+	/** One vulnerability reaching a source purl transitively, with the shortest dependency depth. */
+	record TransitiveVuln(String id, String severity, Double cvssScore, String summary, int depth) {
+	}
 
 }

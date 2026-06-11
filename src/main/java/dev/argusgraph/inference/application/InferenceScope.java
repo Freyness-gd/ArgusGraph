@@ -8,16 +8,16 @@ import java.util.Set;
  */
 public record InferenceScope(Set<String> sourcePurls) {
 
-    public static InferenceScope all() {
-        return new InferenceScope(null);
-    }
+	public static InferenceScope all() {
+		return new InferenceScope(null);
+	}
 
-    public static InferenceScope of(Set<String> sourcePurls) {
-        return new InferenceScope(sourcePurls);
-    }
+	public static InferenceScope of(Set<String> sourcePurls) {
+		return new InferenceScope(sourcePurls);
+	}
 
-    public boolean isAll() {
-        return this.sourcePurls == null;
-    }
+	public boolean isAll() {
+		return this.sourcePurls == null;
+	}
 
 }

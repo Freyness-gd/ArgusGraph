@@ -11,11 +11,11 @@ import dev.argusgraph.inference.InferenceAPI;
 @RequiredArgsConstructor
 class DependenciesLinkedListener {
 
-    private final InferenceAPI inference;
+	private final InferenceAPI inference;
 
-    @ApplicationModuleListener
-    void on(InferenceAPI.DependenciesLinked event) {
-        this.inference.runFor(event.purls());
-    }
+	@ApplicationModuleListener
+	void on(InferenceAPI.DependenciesLinked event) {
+		this.inference.runFor(event.purls());
+	}
 
 }

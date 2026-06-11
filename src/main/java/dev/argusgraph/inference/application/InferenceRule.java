@@ -6,13 +6,13 @@ package dev.argusgraph.inference.application;
  */
 public interface InferenceRule {
 
-    /** Stable identifier stored as {@code inferredBy} provenance (e.g. {@code "R1"}). */
-    String name();
+	/** Stable identifier stored as {@code inferredBy} provenance (e.g. {@code "R1"}). */
+	String name();
 
-    /** Bump when the rule's logic changes, stored as {@code ruleVersion} provenance. */
-    int version();
+	/** Bump when the rule's logic changes, stored as {@code ruleVersion} provenance. */
+	int version();
 
-    /** Apply the rule over the scope; return the number of derived edges written. */
-    long apply(InferenceScope scope);
+	/** Apply the rule over the scope; return the number of derived edges written. */
+	long apply(InferenceScope scope);
 
 }

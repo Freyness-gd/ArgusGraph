@@ -11,17 +11,26 @@ public record ProjectMatchDetails(Long id, String name, Instant createdAt, Summa
 		List<DependencyMatch> dependencies) {
 
 	/** Aggregate counts for the header badges. */
-	public record Summary(int dependencies, int affected, int clean, int unknown, Map<String, Long> bySeverity) {
+	public record Summary(int dependencies, int affected, int clean, int unknown, int transitivelyAffected,
+			Map<String, Long> bySeverity) {
 	}
 
-	/** One dependency with its verdict and the vulnerabilities behind it. */
-	public record DependencyMatch(String purl, Verdict verdict, List<GraphAPI.VulnerabilityRef> vulnerabilities) {
+	/** One dependency: direct verdict, direct vulnerabilities, and transitive exposure. */
+	public record DependencyMatch(String purl, Verdict verdict, List<GraphAPI.VulnerabilityRef> vulnerabilities,
+			List<TransitiveVuln> transitive) {
 	}
 
-	/** No data is not safe: UNKNOWN means the graph has never seen the purl. */
+	/** A vulnerability reaching this dependency through its own dependencies, with depth. */
+	public record TransitiveVuln(String id, String severity, Double cvssScore, String summary, int depth) {
+	}
+
+	/**
+	 * No data is not safe: UNKNOWN means the graph has never seen the purl.
+	 * TRANSITIVELY_AFFECTED: not directly affected, but exposed through a dependency.
+	 */
 	public enum Verdict {
 
-		AFFECTED, CLEAN, UNKNOWN
+		AFFECTED, TRANSITIVELY_AFFECTED, CLEAN, UNKNOWN
 
 	}
 

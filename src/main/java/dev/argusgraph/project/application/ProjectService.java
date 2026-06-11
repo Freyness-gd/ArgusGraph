@@ -34,6 +34,10 @@ public class ProjectService {
 
 	private final GraphAPI graph;
 
+	private final dev.argusgraph.inference.InferenceAPI inference;
+
+	private final org.springframework.context.ApplicationEventPublisher events;
+
 	/** Import one CycloneDX SBOM; explicit name wins over SBOM metadata. */
 	public ImportResult importSbom(String name, String sbomJson) {
 		SbomParser.ParsedSbom sbom = this.parser.parse(sbomJson);
@@ -52,6 +56,8 @@ public class ProjectService {
 		for (SbomParser.DependencyEdge edge : sbom.edges()) {
 			this.graph.linkDependency(edge.fromPurl(), edge.toPurl(), null);
 		}
+		this.events.publishEvent(
+				new dev.argusgraph.inference.InferenceAPI.DependenciesLinked(saved.id(), sbom.purls()));
 		return new ImportResult(saved.id(), saved.name(), saved.dependencies().size(), sbom.skipped());
 	}
 
@@ -73,24 +79,30 @@ public class ProjectService {
 		Map<String, GraphAPI.PurlMatch> byPurl = this.graph.matchPackageVersions(purls)
 			.stream()
 			.collect(Collectors.toMap(GraphAPI.PurlMatch::purl, match -> match, (first, duplicate) -> first));
+		Map<String, List<ProjectMatchDetails.TransitiveVuln>> transitiveByPurl = this.inference
+			.transitiveExposure(purls)
+			.stream()
+			.collect(Collectors.toMap(dev.argusgraph.inference.InferenceAPI.TransitiveHit::purl,
+					hit -> hit.vulnerabilities()
+						.stream()
+						.map(v -> new ProjectMatchDetails.TransitiveVuln(v.id(), v.severity(), v.cvssScore(),
+								v.summary(), v.depth()))
+						.toList(),
+					(first, duplicate) -> first));
 
 		List<ProjectMatchDetails.DependencyMatch> dependencies = purls.stream().map(purl -> {
 			GraphAPI.PurlMatch match = byPurl.get(purl);
-			ProjectMatchDetails.Verdict verdict = verdictOf(match);
+			List<ProjectMatchDetails.TransitiveVuln> transitive = transitiveByPurl.getOrDefault(purl, List.of());
 			List<GraphAPI.VulnerabilityRef> vulnerabilities = match == null ? List.of()
 					: match.vulnerabilities()
 						.stream()
 						.sorted(Comparator.comparingInt(v -> severityRank(v.severity())))
 						.toList();
-			return new ProjectMatchDetails.DependencyMatch(purl, verdict, vulnerabilities);
+			ProjectMatchDetails.Verdict verdict = verdictOf(match, transitive);
+			return new ProjectMatchDetails.DependencyMatch(purl, verdict, vulnerabilities, transitive);
 		})
 			.sorted(Comparator
-				.comparingInt(
-						(ProjectMatchDetails.DependencyMatch d) -> switch (d.verdict()) {
-							case AFFECTED -> 0;
-							case UNKNOWN -> 1;
-							case CLEAN -> 2;
-						})
+				.comparingInt((ProjectMatchDetails.DependencyMatch d) -> verdictRank(d.verdict()))
 				.thenComparingInt(d -> d.vulnerabilities().isEmpty() ? Integer.MAX_VALUE
 						: severityRank(d.vulnerabilities().get(0).severity()))
 				.thenComparing(ProjectMatchDetails.DependencyMatch::purl))
@@ -107,27 +119,51 @@ public class ProjectService {
 		this.projects.deleteById(id);
 	}
 
-	private static ProjectMatchDetails.Verdict verdictOf(GraphAPI.PurlMatch match) {
-		if (match == null || !match.knownToGraph()) {
-			return ProjectMatchDetails.Verdict.UNKNOWN;
+	// Verdict precedence: a direct hit (AFFECTED) outranks transitive exposure, which
+	// outranks CLEAN, which outranks an UNKNOWN purl the graph has never seen.
+	private static ProjectMatchDetails.Verdict verdictOf(GraphAPI.PurlMatch match,
+			List<ProjectMatchDetails.TransitiveVuln> transitive) {
+		if (match != null && !match.vulnerabilities().isEmpty()) {
+			return ProjectMatchDetails.Verdict.AFFECTED;
 		}
-		return match.vulnerabilities().isEmpty() ? ProjectMatchDetails.Verdict.CLEAN
-				: ProjectMatchDetails.Verdict.AFFECTED;
+		if (!transitive.isEmpty()) {
+			return ProjectMatchDetails.Verdict.TRANSITIVELY_AFFECTED;
+		}
+		if (match != null && match.knownToGraph()) {
+			return ProjectMatchDetails.Verdict.CLEAN;
+		}
+		return ProjectMatchDetails.Verdict.UNKNOWN;
+	}
+
+	private static int verdictRank(ProjectMatchDetails.Verdict verdict) {
+		return switch (verdict) {
+			case AFFECTED -> 0;
+			case TRANSITIVELY_AFFECTED -> 1;
+			case CLEAN -> 2;
+			case UNKNOWN -> 3;
+		};
 	}
 
 	private static ProjectMatchDetails.Summary summarize(List<ProjectMatchDetails.DependencyMatch> dependencies) {
 		int affected = 0;
 		int clean = 0;
 		int unknown = 0;
-		// Distinct advisories: the same vulnerability hitting two deps counts once.
+		int transitivelyAffected = 0;
+		// Distinct advisories: the same vulnerability hitting two deps (directly or
+		// transitively) counts once.
 		Map<String, String> severityByVulnerability = new HashMap<>();
 		for (ProjectMatchDetails.DependencyMatch dependency : dependencies) {
 			switch (dependency.verdict()) {
 				case AFFECTED -> affected++;
+				case TRANSITIVELY_AFFECTED -> transitivelyAffected++;
 				case CLEAN -> clean++;
 				case UNKNOWN -> unknown++;
 			}
 			for (GraphAPI.VulnerabilityRef vulnerability : dependency.vulnerabilities()) {
+				severityByVulnerability.put(vulnerability.id(),
+						vulnerability.severity() == null ? "NONE" : vulnerability.severity());
+			}
+			for (ProjectMatchDetails.TransitiveVuln vulnerability : dependency.transitive()) {
 				severityByVulnerability.put(vulnerability.id(),
 						vulnerability.severity() == null ? "NONE" : vulnerability.severity());
 			}
@@ -139,7 +175,8 @@ public class ProjectService {
 				bySeverity.put(severity, count);
 			}
 		}
-		return new ProjectMatchDetails.Summary(dependencies.size(), affected, clean, unknown, bySeverity);
+		return new ProjectMatchDetails.Summary(dependencies.size(), affected, clean, unknown, transitivelyAffected,
+				bySeverity);
 	}
 
 	private static int severityRank(String severity) {

@@ -100,6 +100,7 @@ dependencies {
 	testImplementation("org.testcontainers:testcontainers-junit-jupiter")
 	testImplementation("org.testcontainers:testcontainers-neo4j")
 	testImplementation("org.testcontainers:testcontainers-rabbitmq")
+	testImplementation("org.awaitility:awaitility")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 	// testImplementation("org.springframework.boot:spring-boot-starter-security-test") // when security is enabled
 }

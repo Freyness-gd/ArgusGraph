@@ -52,15 +52,29 @@
     <disallow pkg="dev.argusgraph.graph.infrastructure"/>
   </subpackage>
 
-  <!-- Imported projects (H2-backed). Talks to graph ONLY via GraphAPI + Purl. -->
+  <!-- Imported projects (H2-backed). Talks to graph ONLY via GraphAPI + Purl, and to
+       inference ONLY via InferenceAPI (reads derived results + publishes its event type). -->
   <subpackage name="project">
     <allow pkg="dev.argusgraph.project"/>
     <allow class="dev.argusgraph.graph.GraphAPI"/>
     <allow class="dev.argusgraph.graph.Purl"/>
+    <allow class="dev.argusgraph.inference.InferenceAPI"/>
     <disallow pkg="dev.argusgraph.graph.api"/>
     <disallow pkg="dev.argusgraph.graph.application"/>
     <disallow pkg="dev.argusgraph.graph.infrastructure"/>
+    <disallow pkg="dev.argusgraph.inference.api"/>
+    <disallow pkg="dev.argusgraph.inference.application"/>
+    <disallow pkg="dev.argusgraph.inference.infrastructure"/>
     <disallow pkg="dev.argusgraph.ingest"/>
+  </subpackage>
+
+  <!-- Inference engine: derives transitive exposure over the shared graph. Self-contained —
+       depends on no other domain module; reaches the graph only through its own Cypher. -->
+  <subpackage name="inference">
+    <allow pkg="dev.argusgraph.inference"/>
+    <disallow pkg="dev.argusgraph.graph"/>
+    <disallow pkg="dev.argusgraph.ingest"/>
+    <disallow pkg="dev.argusgraph.project"/>
   </subpackage>
 
 </import-control>

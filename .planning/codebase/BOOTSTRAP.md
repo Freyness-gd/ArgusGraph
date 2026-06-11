@@ -73,5 +73,5 @@ Docker daemon.
 - **Checkstyle never fails the build** here (warn-only) — it checks module boundaries +
   imports. There is no auto-formatter; `.editorconfig` governs whitespace/indentation.
 - **H2 project store** lives at `./data/` (file-mode, gitignored). Delete that directory
-  for a fresh project store — the schema is created automatically on boot via
-  `spring.jpa.hibernate.ddl-auto=update`.
+  for a fresh project store — the schema is recreated on boot from `schema.sql`
+  (`spring.sql.init.mode: always`, idempotent `IF NOT EXISTS` DDL; there is no JPA here).

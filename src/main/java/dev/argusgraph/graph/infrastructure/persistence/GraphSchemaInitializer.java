@@ -28,12 +28,20 @@ class GraphSchemaInitializer implements ApplicationRunner {
 			"CREATE CONSTRAINT package_version_purl_unique IF NOT EXISTS FOR (v:PackageVersion) REQUIRE v.purl IS UNIQUE",
 			"CREATE CONSTRAINT vulnerability_id_unique IF NOT EXISTS FOR (v:Vulnerability) REQUIRE v.id IS UNIQUE");
 
+	/** Dimensions match the all-MiniLM-L6-v2 model computing the vectors (worker module). */
+	private static final String VULNERABILITY_EMBEDDING_INDEX = """
+			CREATE VECTOR INDEX vulnerability_embedding IF NOT EXISTS
+			FOR (v:Vulnerability) ON (v.embedding)
+			OPTIONS {indexConfig: {`vector.dimensions`: 384, `vector.similarity_function`: 'cosine'}}
+			""";
+
 	private final Neo4jClient neo4j;
 
 	@Override
 	public void run(ApplicationArguments args) {
 		CONSTRAINTS.forEach(constraint -> this.neo4j.query(constraint).run());
-		log.info("Graph uniqueness constraints ensured ({}).", CONSTRAINTS.size());
+		this.neo4j.query(VULNERABILITY_EMBEDDING_INDEX).run();
+		log.info("Graph schema ensured: {} uniqueness constraints, 1 vector index.", CONSTRAINTS.size());
 	}
 
 }

@@ -10,6 +10,7 @@ import dev.argusgraph.graph.GraphAPI;
 import dev.argusgraph.graph.PackageVersion;
 import dev.argusgraph.graph.Purl;
 import dev.argusgraph.graph.Vulnerability;
+import dev.argusgraph.shared.exception.BusinessRuleException;
 import dev.argusgraph.shared.exception.ResourceNotFoundException;
 
 /**
@@ -70,6 +71,15 @@ public class GraphService implements GraphAPI {
 		String id = Vulnerability.normalizeId(vulnerabilityId);
 		PackageSnapshot target = upsertPackage(packagePurl);
 		this.graph.linkAffectsPackage(id, target.purl(), rangesJson);
+	}
+
+	@Override
+	public void attachEmbedding(String vulnerabilityId, float[] embedding) {
+		String id = Vulnerability.normalizeId(vulnerabilityId);
+		if (embedding == null || embedding.length == 0) {
+			throw new BusinessRuleException("Embedding vector must not be empty.");
+		}
+		this.graph.attachEmbedding(id, embedding);
 	}
 
 	/** Read a package version with its direct dependencies and known vulnerabilities. */

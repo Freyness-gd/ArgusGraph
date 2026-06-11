@@ -49,6 +49,9 @@ dependencies {
 	// CVSS vector parsing — derives numeric base scores from OSV severity vectors.
 	implementation("us.springett:cvss-calculator:${libs.versions.cvssCalculator.get()}")
 
+	// In-process text embeddings (ONNX all-MiniLM-L6-v2, 384 dims) — no external model service.
+	implementation("dev.langchain4j:langchain4j-embeddings-all-minilm-l6-v2:${libs.versions.langchain4jEmbeddings.get()}")
+
 	// Modular monolith + DDD/layered architecture annotations.
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
 	implementation("org.springframework.modulith:spring-modulith-starter-neo4j")

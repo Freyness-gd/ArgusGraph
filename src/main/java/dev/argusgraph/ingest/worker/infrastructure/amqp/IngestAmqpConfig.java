@@ -55,4 +55,29 @@ class IngestAmqpConfig {
 		return BindingBuilder.bind(osvDeadLetterQueue).to(ingestDeadLetterExchange).with(IngestRouting.OSV_QUEUE);
 	}
 
+	@Bean
+	Queue embeddingQueue() {
+		return QueueBuilder.durable(IngestRouting.EMBEDDING_QUEUE)
+			.withArgument("x-dead-letter-exchange", IngestRouting.DEAD_LETTER_EXCHANGE)
+			.withArgument("x-dead-letter-routing-key", IngestRouting.EMBEDDING_QUEUE)
+			.build();
+	}
+
+	@Bean
+	Queue embeddingDeadLetterQueue() {
+		return QueueBuilder.durable(IngestRouting.EMBEDDING_DEAD_LETTER_QUEUE).build();
+	}
+
+	@Bean
+	Binding embeddingBinding(TopicExchange ingestExchange, Queue embeddingQueue) {
+		return BindingBuilder.bind(embeddingQueue).to(ingestExchange).with(IngestRouting.EMBEDDING_ROUTING_KEY);
+	}
+
+	@Bean
+	Binding embeddingDeadLetterBinding(DirectExchange ingestDeadLetterExchange, Queue embeddingDeadLetterQueue) {
+		return BindingBuilder.bind(embeddingDeadLetterQueue)
+			.to(ingestDeadLetterExchange)
+			.with(IngestRouting.EMBEDDING_QUEUE);
+	}
+
 }

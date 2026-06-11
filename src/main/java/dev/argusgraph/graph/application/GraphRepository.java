@@ -37,6 +37,9 @@ public interface GraphRepository {
 	/** Upsert {@code vulnerability -[:AFFECTS_PACKAGE {ranges}]-> package} with raw OSV ranges JSON. */
 	void linkAffectsPackage(String vulnerabilityId, String packagePurl, String rangesJson);
 
+	/** Set the embedding vector on an existing vulnerability node; no-op when it doesn't exist. */
+	void attachEmbedding(String vulnerabilityId, float[] embedding);
+
 	/** A package version with its direct dependencies and directly-affecting vulnerabilities. */
 	Optional<PackageVersionDetails> findPackageVersion(String purl);
 

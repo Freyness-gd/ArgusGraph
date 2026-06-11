@@ -26,6 +26,7 @@
   <allow pkg="lombok"/>
   <allow pkg="us.springett"/>
   <allow pkg="tools.jackson"/>
+  <allow pkg="dev.langchain4j"/>
   <!-- Shared kernel: tiny, dependency-free helpers usable everywhere. -->
   <allow pkg="dev.argusgraph.shared"/>
 

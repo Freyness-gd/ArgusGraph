@@ -88,6 +88,11 @@ class Neo4jGraphRepository implements GraphRepository {
 			SET r.ranges = coalesce($ranges, r.ranges)
 			""";
 
+	private static final String ATTACH_EMBEDDING = """
+			MATCH (v:Vulnerability {id: $id})
+			SET v.embedding = $embedding
+			""";
+
 	private static final String FIND_PACKAGE_VERSION = """
 			MATCH (p:Package)-[:HAS_VERSION]->(pv:PackageVersion {purl: $purl})
 			OPTIONAL MATCH (pv)-[d:DEPENDS_ON]->(dep:PackageVersion)
@@ -175,6 +180,14 @@ class Neo4jGraphRepository implements GraphRepository {
 		parameters.put("packagePurl", packagePurl);
 		parameters.put("ranges", rangesJson);
 		this.neo4j.query(LINK_AFFECTS_PACKAGE).bindAll(parameters).run();
+	}
+
+	@Override
+	public void attachEmbedding(String vulnerabilityId, float[] embedding) {
+		Map<String, Object> parameters = new HashMap<>();
+		parameters.put("id", vulnerabilityId);
+		parameters.put("embedding", toDoubleList(embedding));
+		this.neo4j.query(ATTACH_EMBEDDING).bindAll(parameters).run();
 	}
 
 	@Override

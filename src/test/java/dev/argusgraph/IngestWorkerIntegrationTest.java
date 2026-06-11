@@ -79,6 +79,12 @@ class IngestWorkerIntegrationTest {
 				MATCH (:Vulnerability {id: 'GHSA-wrkr-dire-0002'})-[:AFFECTS]->
 				      (:PackageVersion {purl: 'pkg:npm/is-odd@3.0.1'})
 				RETURN count(*)""")).isEqualTo(1));
+
+		// The follow-up embedding hop: summary text → MiniLM vector on the node.
+		await().atMost(Duration.ofSeconds(30)).untilAsserted(() -> assertThat(count("""
+				MATCH (v:Vulnerability {id: 'GHSA-wrkr-dire-0002'})
+				WHERE v.embedding IS NOT NULL AND size(v.embedding) = 384
+				RETURN count(v)""")).isEqualTo(1));
 	}
 
 	@Test

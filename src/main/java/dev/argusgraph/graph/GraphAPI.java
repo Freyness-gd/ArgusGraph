@@ -53,6 +53,13 @@ public interface GraphAPI {
 	void linkAffectsPackage(String vulnerabilityId, String packagePurl, String rangesJson);
 
 	/**
+	 * Attach a text-embedding vector to an existing vulnerability node. No-op when the
+	 * node does not exist (embedding requests always follow an ingest). Recomputing is
+	 * idempotent — same text, same vector.
+	 */
+	void attachEmbedding(String vulnerabilityId, float[] embedding);
+
+	/**
 	 * Cross-module input for a vulnerability upsert, mirroring the OSV fields the graph
 	 * persists. {@code id} and {@code modified} are required (OSV schema); everything
 	 * else is optional.

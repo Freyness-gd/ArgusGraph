@@ -13,6 +13,7 @@ import dev.argusgraph.ingest.application.IngestService;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -20,16 +21,18 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
- * The handler is the consume-side seam: raw OSV JSON in, IngestService call out. Uses a
- * real JsonMapper (Jackson 3 handles java.time out of the box) and a mocked
- * IngestService. Malformed JSON must propagate — that's what drives the listener's
- * retry-then-dead-letter path in production.
+ * The handler is the consume-side seam: raw OSV JSON in, IngestService call plus an
+ * embedding request out. Uses a real JsonMapper (Jackson 3 handles java.time out of the
+ * box) and mocked collaborators. Malformed JSON must propagate — that's what drives the
+ * listener's retry-then-dead-letter path in production.
  */
 class OsvDocumentHandlerTest {
 
 	private final IngestService ingest = mock(IngestService.class);
 
-	private final OsvDocumentHandler handler = new OsvDocumentHandler(new JsonMapper(), this.ingest);
+	private final RawDocumentPublisher publisher = mock(RawDocumentPublisher.class);
+
+	private final OsvDocumentHandler handler = new OsvDocumentHandler(new JsonMapper(), this.ingest, this.publisher);
 
 	@Test
 	void parsesRawOsvJsonAndDelegatesToIngestService() {
@@ -49,10 +52,40 @@ class OsvDocumentHandlerTest {
 	}
 
 	@Test
+	void requestsAnEmbeddingForTheAdvisoryText() {
+		when(this.ingest.ingestOsv(any()))
+			.thenReturn(mock(IngestService.IngestOsvResult.class, RETURNS_DEEP_STUBS));
+
+		this.handler.handle("""
+				{"id":"GHSA-jfh8-c2jp-5v3q","modified":"2024-03-15T12:00:00Z",
+				 "summary":"Remote code injection in Log4j",
+				 "details":"JNDI features do not protect against attacker controlled endpoints."}
+				""");
+
+		ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+		verify(this.publisher).publish(eq(IngestRouting.EMBEDDING_ROUTING_KEY), payload.capture());
+		assertThat(payload.getValue()).contains("\"vulnerabilityId\":\"GHSA-jfh8-c2jp-5v3q\"")
+			.contains("Remote code injection in Log4j")
+			.contains("JNDI features do not protect");
+	}
+
+	@Test
+	void skipsTheEmbeddingRequestWhenTheAdvisoryHasNoText() {
+		when(this.ingest.ingestOsv(any()))
+			.thenReturn(mock(IngestService.IngestOsvResult.class, RETURNS_DEEP_STUBS));
+
+		this.handler.handle("""
+				{"id":"GHSA-no-text-0001","modified":"2024-03-15T12:00:00Z"}
+				""");
+
+		verifyNoInteractions(this.publisher);
+	}
+
+	@Test
 	void malformedJsonPropagatesAndNothingIsIngested() {
 		assertThatThrownBy(() -> this.handler.handle("this is not json"))
 			.isInstanceOf(JacksonException.class);
-		verifyNoInteractions(this.ingest);
+		verifyNoInteractions(this.ingest, this.publisher);
 	}
 
 }

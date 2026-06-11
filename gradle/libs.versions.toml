@@ -17,6 +17,7 @@ springDoc = "3.0.3"
 checkstyle = "13.0.0"
 packageUrl = "1.5.0"
 cvssCalculator = "1.4.2"
+langchain4jEmbeddings = "1.10.0-beta18"
 
 # ── BOMs ──────────────────────────────────────────────────────────────────────
 [libraries]

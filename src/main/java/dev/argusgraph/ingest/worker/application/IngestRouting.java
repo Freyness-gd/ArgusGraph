@@ -18,6 +18,12 @@ public final class IngestRouting {
 
 	public static final String OSV_DEAD_LETTER_QUEUE = "ingest.osv.dlq";
 
+	public static final String EMBEDDING_ROUTING_KEY = "embedding.requested";
+
+	public static final String EMBEDDING_QUEUE = "ingest.embedding";
+
+	public static final String EMBEDDING_DEAD_LETTER_QUEUE = "ingest.embedding.dlq";
+
 	private IngestRouting() {
 	}
 

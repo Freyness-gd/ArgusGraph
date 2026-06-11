@@ -1,6 +1,7 @@
 package dev.argusgraph.graph.application;
 
 import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -107,7 +108,7 @@ public class GraphService implements GraphAPI {
 		if (purls == null || purls.isEmpty()) {
 			return List.of();
 		}
-		return this.graph.findMatches(purls);
+		return this.graph.findMatches(new LinkedHashSet<>(purls));
 	}
 
 	/**

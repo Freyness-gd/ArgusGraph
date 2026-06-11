@@ -6,18 +6,20 @@ See: .planning/PROJECT.md
 
 **Core value:** Transitive vulnerability detection as a graph problem — dependencies +
 advisories in one version-level Neo4j knowledge graph.
-**Current focus:** Phase 2 (data import) in progress — OSV is the canonical vulnerability
-format and the first dataset. Next: bulk import of the OSV dump (user downloads the GCS
-bucket with a separate program; ingest `/batch` endpoint ready, UNWIND bulk path open).
+**Current focus:** Phase 2 (data import) in progress — worker pipeline (RabbitMQ) and
+text embeddings live. Next: bulk import of the OSV dump (user downloads the GCS bucket
+with a separate program), then UNWIND bulk path if per-doc throughput disappoints.
 
 ## Current Position
 
-Phase: 2 (Data import) — OSV format support shipped
+Phase: 2 (Data import) — OSV format + worker pipeline + embeddings shipped
 Plan: in progress
-Status: OSV-schema ingestion live (single + batch), 22/22 tests green
-Last activity: 2026-06-10 — OSV vulnerability ingestion, CVSS derivation, AFFECTS_PACKAGE ranges
+Status: REST trigger → RabbitMQ → graph; embedding queue attaches 384-dim MiniLM
+vectors (summary+details) to Vulnerability nodes; vector index live. 43/43 tests green
+Last activity: 2026-06-11 — embedding pipeline (separate queue, in-JVM ONNX MiniLM,
+GraphAPI.attachEmbedding, vulnerability_embedding vector index)
 
-Progress: [███░░░░░░░] ~30%
+Progress: [████░░░░░░] ~40%
 
 ## Accumulated Context
 

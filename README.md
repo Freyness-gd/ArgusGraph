@@ -61,6 +61,8 @@ time (Checkstyle ImportControl) and test time (`ModulithTests`).
 | `POST /ingest/affects`              | Record `AFFECTS` from a vulnerability to a version |
 | `POST /ingest/jobs/osv?ecosystem=`  | Fetch an OSV ecosystem dump async via RabbitMQ (202/429) |
 | `GET  /graph/package-versions?purl=`| A version + direct dependencies + known vulns      |
+| `GET  /graph/stats`                 | Whole-graph counts + severity buckets (dashboard)  |
+| `GET  /graph/vulnerabilities`       | Paged vulnerability list with severity/text filters |
 
 The REST API lives under `/api/v1`; the dashboard SPA is served from the root path `/`. Errors are RFC 9457 `problem+json`:
 400 validation, 404 unknown node, 409 domain-rule violation (e.g. malformed purl).

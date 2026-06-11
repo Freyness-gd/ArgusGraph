@@ -66,6 +66,8 @@ time (Checkstyle ImportControl) and test time (`ModulithTests`).
 | `GET  /graph/vulnerabilities`       | Paged vulnerability list with severity/text filters |
 | `POST /projects`                    | Import a CycloneDX SBOM as a project (stored in H2) |
 | `GET  /projects/{id}`               | Project detail with live vulnerability match       |
+| `GET  /graph/stats/vulnerability-trend` | Vulnerabilities published per time bucket (from/to range) |
+| `GET  /graph/stats/top-packages`    | Packages ranked by distinct affecting vulnerabilities |
 
 The REST API lives under `/api/v1`; the dashboard SPA is served from the root path `/`. Errors are RFC 9457 `problem+json`:
 400 validation, 404 unknown node, 409 domain-rule violation (e.g. malformed purl).
@@ -131,8 +133,9 @@ curl "http://localhost:8080/api/v1/graph/package-versions?purl=pkg:maven/org.apa
 
 A no-build Mithril.js SPA served from the jar at http://localhost:8080/ — graph stats,
 vulnerability browsing, purl lookup, manual OSV fetch triggers, and project SBOM import
-with live vulnerability matching (Projects tab). Source lives in
-`src/main/resources/static/` (no npm, no bundler — edit and refresh).
+with live vulnerability matching (Projects tab); the Stats view renders a vulnerability-trend
+line chart and a top-packages bar chart, while the project detail view shows a severity donut
+— all via Chart.js vendored in `static/vendor/` (no npm, no bundler — edit and refresh).
 
 ---
 

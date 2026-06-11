@@ -160,3 +160,12 @@ ul.mono { padding-left: 18px; line-height: 1.7; }
 .toast strong { color: var(--text-bright); display: block; margin-bottom: 4px; }
 
 a { color: var(--accent); }
+
+/* ── Pipeline status ── */
+.dot-running { color: var(--accent); }
+.badge.q-idle { background: var(--sev-none); color: var(--muted); }
+.badge.q-busy { background: var(--accent); }
+.badge.q-alarm { background: var(--sev-critical); }
+.badge.state-running { background: var(--accent); }
+.badge.state-completed { background: #238636; }
+.badge.state-failed { background: var(--sev-critical); }

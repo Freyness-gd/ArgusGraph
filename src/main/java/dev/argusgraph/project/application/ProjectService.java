@@ -9,10 +9,12 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.argusgraph.graph.GraphAPI;
+import dev.argusgraph.inference.InferenceAPI;
 import dev.argusgraph.shared.exception.BusinessRuleException;
 import dev.argusgraph.shared.exception.ResourceNotFoundException;
 
@@ -34,9 +36,9 @@ public class ProjectService {
 
 	private final GraphAPI graph;
 
-	private final dev.argusgraph.inference.InferenceAPI inference;
+	private final InferenceAPI inference;
 
-	private final org.springframework.context.ApplicationEventPublisher events;
+	private final ApplicationEventPublisher events;
 
 	/** Import one CycloneDX SBOM; explicit name wins over SBOM metadata. */
 	public ImportResult importSbom(String name, String sbomJson) {
@@ -56,8 +58,7 @@ public class ProjectService {
 		for (SbomParser.DependencyEdge edge : sbom.edges()) {
 			this.graph.linkDependency(edge.fromPurl(), edge.toPurl(), null);
 		}
-		this.events.publishEvent(
-				new dev.argusgraph.inference.InferenceAPI.DependenciesLinked(saved.id(), sbom.purls()));
+		this.events.publishEvent(new InferenceAPI.DependenciesLinked(saved.id(), sbom.purls()));
 		return new ImportResult(saved.id(), saved.name(), saved.dependencies().size(), sbom.skipped());
 	}
 
@@ -82,7 +83,7 @@ public class ProjectService {
 		Map<String, List<ProjectMatchDetails.TransitiveVuln>> transitiveByPurl = this.inference
 			.transitiveExposure(purls)
 			.stream()
-			.collect(Collectors.toMap(dev.argusgraph.inference.InferenceAPI.TransitiveHit::purl,
+			.collect(Collectors.toMap(InferenceAPI.TransitiveHit::purl,
 					hit -> hit.vulnerabilities()
 						.stream()
 						.map(v -> new ProjectMatchDetails.TransitiveVuln(v.id(), v.severity(), v.cvssScore(),

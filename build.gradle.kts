@@ -3,6 +3,7 @@ plugins {
 	jacoco
 	checkstyle
 	alias(libs.plugins.spring.boot)
+	id("org.cyclonedx.bom") version "2.3.1"
 }
 
 group = "dev.argusgraph"
@@ -14,6 +15,14 @@ java {
 		languageVersion = JavaLanguageVersion.of(libs.versions.java.get().toInt())
 		vendor.set(JvmVendorSpec.BELLSOFT)
 	}
+}
+
+tasks.cyclonedxBom {
+	setSchemaVersion("1.6")
+	setOutputFormat("json")
+	setOutputName("bom")
+	setIncludeBomSerialNumber(true)
+	setProjectType("application")
 }
 
 configurations {

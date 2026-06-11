@@ -125,14 +125,14 @@ class Neo4jGraphRepository implements GraphRepository {
 
 	private static final String VULNERABILITY_FILTER = """
 			MATCH (v:Vulnerability)
-			WHERE ($severity IS NULL OR v.severity = $severity)
+			WHERE ($severity IS NULL OR coalesce(v.severity, 'NONE') = $severity)
 			  AND ($q IS NULL OR toLower(v.id) CONTAINS $q OR toLower(coalesce(v.summary, '')) CONTAINS $q)
 			""";
 
 	private static final String FIND_VULNERABILITIES = VULNERABILITY_FILTER + """
 			RETURN v.id AS id, v.severity AS severity, v.cvssScore AS cvssScore,
 			       v.summary AS summary, v.published AS published
-			ORDER BY v.published IS NULL, v.published DESC
+			ORDER BY v.published IS NULL, v.published DESC, v.id ASC
 			SKIP $skip LIMIT $limit
 			""";
 

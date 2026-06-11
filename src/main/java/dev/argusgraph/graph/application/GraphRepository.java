@@ -49,7 +49,7 @@ public interface GraphRepository {
 	/**
 	 * One page of vulnerabilities, newest published first (nulls last). Both filters are
 	 * optional ({@code null} = off): {@code severity} matches the stored value exactly,
-	 * {@code q} is a pre-lowercased substring matched against id and summary.
+	 * {@code q} is matched case-insensitively against id and summary.
 	 */
 	VulnerabilityPage findVulnerabilities(String severity, String q, int page, int size);
 

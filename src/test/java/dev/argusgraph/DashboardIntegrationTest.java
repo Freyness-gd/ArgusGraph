@@ -59,14 +59,15 @@ class DashboardIntegrationTest {
 		ingestVulnerability("ARGUS-LIST-A", "browse-marker alpha", CRITICAL_VECTOR, "2026-03-01T00:00:00Z");
 		ingestVulnerability("ARGUS-LIST-B", "browse-marker beta", null, "2026-02-01T00:00:00Z");
 		ingestVulnerability("ARGUS-LIST-C", "browse-marker gamma", null, "2026-01-01T00:00:00Z");
+		ingestVulnerability("ARGUS-LIST-D", "browse-marker delta", null, null);
 
-		// q scopes everything to this test's data; newest published first.
+		// q scopes everything to this test's data; newest published first, null published last.
 		Map<String, Object> all = this.rest.getForObject("/api/v1/graph/vulnerabilities?q=browse-marker",
 				Map.class);
-		assertThat(longOf(all, "total")).isEqualTo(3);
+		assertThat(longOf(all, "total")).isEqualTo(4);
 		List<Map<String, Object>> items = (List<Map<String, Object>>) all.get("items");
 		assertThat(items).extracting(i -> i.get("id"))
-			.containsExactly("ARGUS-LIST-A", "ARGUS-LIST-B", "ARGUS-LIST-C");
+			.containsExactly("ARGUS-LIST-A", "ARGUS-LIST-B", "ARGUS-LIST-C", "ARGUS-LIST-D");
 
 		// Severity filter is case-normalised and narrows to the critical advisory.
 		Map<String, Object> critical = this.rest
@@ -77,12 +78,22 @@ class DashboardIntegrationTest {
 			.containsEntry("severity", "CRITICAL")
 			.containsEntry("cvssScore", 10.0);
 
-		// Page 2 of size 2 holds the single remaining row.
+		// Page 2 of size 2 holds C and D (the null-published advisory sorts last).
 		Map<String, Object> page2 = this.rest
 			.getForObject("/api/v1/graph/vulnerabilities?q=browse-marker&page=1&size=2", Map.class);
-		assertThat(longOf(page2, "total")).isEqualTo(3);
+		assertThat(longOf(page2, "total")).isEqualTo(4);
 		assertThat(((List<Map<String, Object>>) page2.get("items"))).extracting(i -> i.get("id"))
-			.containsExactly("ARGUS-LIST-C");
+			.containsExactly("ARGUS-LIST-C", "ARGUS-LIST-D");
+
+		// Case-insensitive id search: q=argus-list matches all 4 by id, summaries don't contain it.
+		Map<String, Object> byId = this.rest
+			.getForObject("/api/v1/graph/vulnerabilities?q=argus-list", Map.class);
+		assertThat(longOf(byId, "total")).isEqualTo(4);
+
+		// NONE severity filter matches the 3 unscored advisories (B, C, D).
+		Map<String, Object> noneFiltered = this.rest
+			.getForObject("/api/v1/graph/vulnerabilities?severity=NONE&q=browse-marker", Map.class);
+		assertThat(longOf(noneFiltered, "total")).isEqualTo(3);
 	}
 
 	private void ingestPackageVersion(String purl) {
@@ -96,7 +107,9 @@ class DashboardIntegrationTest {
 		Map<String, Object> osv = new HashMap<>();
 		osv.put("id", id);
 		osv.put("modified", "2026-01-01T00:00:00Z");
-		osv.put("published", published);
+		if (published != null) {
+			osv.put("published", published);
+		}
 		osv.put("summary", summary);
 		if (cvssVector != null) {
 			osv.put("severity", List.of(Map.of("type", "CVSS_V3", "score", cvssVector)));

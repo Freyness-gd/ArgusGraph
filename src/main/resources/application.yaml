@@ -42,6 +42,15 @@ spring:
         max-concurrency: 8
         prefetch: 10
 
+  # ── Projects datasource (H2) ─────────────────────────────────────────────────
+  # Imported SBOM projects live OUTSIDE the graph in an embedded H2 file. Tests
+  # override to in-memory. Schema bootstraps from schema.sql (IF NOT EXISTS).
+  datasource:
+    url: ${PROJECTS_DB_URL:jdbc:h2:file:./data/projects}
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
   # We start compose manually; don't let Spring auto-manage it.
   docker:
     compose:

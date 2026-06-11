@@ -80,6 +80,9 @@ bruno/**/*.bru.env
 # ─────────────────────────────────────────────────────────────────────────────
 .claude/
 
+# H2 project store
+data/
+
 # Local design specs — never committed.
 docs/
 

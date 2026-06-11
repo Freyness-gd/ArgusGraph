@@ -52,4 +52,15 @@
     <disallow pkg="dev.argusgraph.graph.infrastructure"/>
   </subpackage>
 
+  <!-- Imported projects (H2-backed). Talks to graph ONLY via GraphAPI + Purl. -->
+  <subpackage name="project">
+    <allow pkg="dev.argusgraph.project"/>
+    <allow class="dev.argusgraph.graph.GraphAPI"/>
+    <allow class="dev.argusgraph.graph.Purl"/>
+    <disallow pkg="dev.argusgraph.graph.api"/>
+    <disallow pkg="dev.argusgraph.graph.application"/>
+    <disallow pkg="dev.argusgraph.graph.infrastructure"/>
+    <disallow pkg="dev.argusgraph.ingest"/>
+  </subpackage>
+
 </import-control>

@@ -39,6 +39,7 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
 	implementation("org.springframework.boot:spring-boot-starter-amqp")
 	implementation("org.springframework.boot:spring-boot-starter-data-neo4j")
+	implementation("org.springframework.boot:spring-boot-starter-data-jdbc")
 	implementation("org.springframework.boot:spring-boot-starter-security")
 	implementation("org.springframework.boot:spring-boot-starter-validation")
 	implementation("org.springframework.boot:spring-boot-starter-webmvc")
@@ -64,6 +65,10 @@ dependencies {
 	// ── Enable real JWT auth (see app/infrastructure/SecurityConfig.java) ─────────
 	// Uncomment to turn the open prototype security into a stateless JWT resource server.
 	// implementation("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
+
+	// ── Runtime only ──────────────────────────────────────────────────────────────
+	// Embedded store for imported projects (the graph stays advisory-only).
+	runtimeOnly("com.h2database:h2")
 
 	// ── Compile-only ──────────────────────────────────────────────────────────────
 	compileOnly("org.projectlombok:lombok")

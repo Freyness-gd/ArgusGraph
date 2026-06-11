@@ -12,6 +12,8 @@ import java.util.Map;
 import java.util.Optional;
 
 import lombok.RequiredArgsConstructor;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Session;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Component;
 
@@ -140,7 +142,21 @@ class Neo4jGraphRepository implements GraphRepository {
 			RETURN count(v) AS total
 			""";
 
+	private static final String COUNT_NODES = """
+			MATCH (n) RETURN count(n) AS total
+			""";
+
+	private static final String WIPE_ALL = """
+			MATCH (n)
+			CALL {
+			    WITH n
+			    DETACH DELETE n
+			} IN TRANSACTIONS OF 10000 ROWS
+			""";
+
 	private final Neo4jClient neo4j;
+
+	private final Driver driver;
 
 	@Override
 	public PackageVersion upsertPackageVersion(PackageVersion packageVersion) {
@@ -262,6 +278,17 @@ class Neo4jGraphRepository implements GraphRepository {
 			.one()
 			.orElse(0L);
 		return new VulnerabilityPage(items, page, size, total);
+	}
+
+	@Override
+	public long wipeAll() {
+		long total = this.neo4j.query(COUNT_NODES).fetchAs(Long.class).one().orElse(0L);
+		// CALL { ... } IN TRANSACTIONS requires an implicit (auto-commit) transaction.
+		// Neo4jClient always uses managed/explicit transactions, so the raw Driver is used here.
+		try (Session session = this.driver.session()) {
+			session.run(WIPE_ALL).consume();
+		}
+		return total;
 	}
 
 	@SuppressWarnings("unchecked")

@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,6 +46,12 @@ public class GraphController {
 			@RequestParam(defaultValue = "25") int size, @RequestParam(required = false) String severity,
 			@RequestParam(required = false) String q) {
 		return VulnerabilityPageResponse.from(this.graph.findVulnerabilities(severity, q, page, size));
+	}
+
+	@PostMapping("/reset")
+	@Operation(summary = "DESTRUCTIVE: delete every node and relationship in the graph (constraints survive)")
+	public GraphResetResponse reset() {
+		return new GraphResetResponse(this.graph.resetGraph());
 	}
 
 }

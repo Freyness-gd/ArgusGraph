@@ -5,6 +5,7 @@ import java.util.Locale;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.argusgraph.graph.GraphAPI;
@@ -97,6 +98,17 @@ public class GraphService implements GraphAPI {
 	@Transactional(readOnly = true)
 	public GraphStats getStats() {
 		return this.graph.fetchStats();
+	}
+
+	/**
+	 * Wipe the whole graph (all nodes and relationships); constraints stay. Suspends the
+	 * surrounding Spring transaction ({@code NOT_SUPPORTED}) because the adapter's
+	 * batched delete uses {@code CALL ... IN TRANSACTIONS}, which Neo4j only allows in
+	 * implicit (auto-commit) transactions.
+	 */
+	@Transactional(propagation = Propagation.NOT_SUPPORTED)
+	public long resetGraph() {
+		return this.graph.wipeAll();
 	}
 
 	/** One page of the vulnerability browse table; blank filters mean "all". */

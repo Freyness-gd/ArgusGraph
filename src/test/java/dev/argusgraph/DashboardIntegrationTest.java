@@ -10,6 +10,7 @@ import org.springframework.boot.resttestclient.TestRestTemplate;
 import org.springframework.boot.resttestclient.autoconfigure.AutoConfigureTestRestTemplate;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,6 +31,9 @@ class DashboardIntegrationTest {
 
 	@Autowired
 	private TestRestTemplate rest;
+
+	@Autowired
+	private Neo4jClient neo4j;
 
 	@Test
 	void servesTheSpaAtRoot() {
@@ -104,6 +108,32 @@ class DashboardIntegrationTest {
 		Map<String, Object> noneFiltered = this.rest
 			.getForObject("/api/v1/graph/vulnerabilities?severity=NONE&q=browse-marker", Map.class);
 		assertThat(longOf(noneFiltered, "total")).isEqualTo(3);
+	}
+
+	@Test
+	@SuppressWarnings("unchecked")
+	void resetWipesTheGraphButKeepsConstraints() {
+		ingestPackageVersion("pkg:maven/dev.argusgraph.reset/lib@1.0.0");
+		ingestVulnerability("ARGUS-RESET-1", "reset marker", null, "2026-01-01T00:00:00Z");
+
+		ResponseEntity<Map> reset = this.rest.postForEntity("/api/v1/graph/reset", null, Map.class);
+		assertThat(reset.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(longOf(reset.getBody(), "nodesDeleted")).isGreaterThanOrEqualTo(3);
+
+		// Zeros are safe to assert immediately after our own wipe (methods run sequentially).
+		Map<String, Object> stats = this.rest.getForObject("/api/v1/graph/stats", Map.class);
+		assertThat(longOf(stats, "packages")).isZero();
+		assertThat(longOf(stats, "packageVersions")).isZero();
+		assertThat(longOf(stats, "vulnerabilities")).isZero();
+
+		// Schema survived: the three uniqueness constraints still exist and the same
+		// purl ingests cleanly again.
+		long constraints = this.neo4j.query("SHOW CONSTRAINTS YIELD name RETURN count(*) AS n")
+			.fetchAs(Long.class)
+			.one()
+			.orElse(0L);
+		assertThat(constraints).isGreaterThanOrEqualTo(3);
+		ingestPackageVersion("pkg:maven/dev.argusgraph.reset/lib@1.0.0");
 	}
 
 	private void ingestPackageVersion(String purl) {

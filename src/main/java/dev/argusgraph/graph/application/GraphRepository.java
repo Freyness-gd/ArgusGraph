@@ -53,4 +53,12 @@ public interface GraphRepository {
 	 */
 	VulnerabilityPage findVulnerabilities(String severity, String q, int page, int size);
 
+	/**
+	 * Delete every node and relationship in batched implicit transactions; uniqueness
+	 * constraints survive. Returns the number of nodes deleted. MUST be called outside
+	 * an explicit transaction — {@code CALL ... IN TRANSACTIONS} only runs in implicit
+	 * (auto-commit) transactions.
+	 */
+	long wipeAll();
+
 }

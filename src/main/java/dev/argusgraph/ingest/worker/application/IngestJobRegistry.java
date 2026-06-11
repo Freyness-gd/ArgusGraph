@@ -80,14 +80,14 @@ public class IngestJobRegistry {
 		}
 
 		public void complete() {
-			this.state = State.COMPLETED;
 			this.finishedAt = Instant.now();
+			this.state = State.COMPLETED;
 		}
 
 		public void fail(String error) {
-			this.state = State.FAILED;
 			this.error = error;
 			this.finishedAt = Instant.now();
+			this.state = State.FAILED;
 		}
 
 		private JobView view() {

@@ -48,6 +48,13 @@ public class R2RangeResolution implements InferenceRule {
 
 	@Override
 	public long apply(InferenceScope scope) {
+		// R2 is advisory-driven, not project-driven: it resolves ranges across the whole graph and
+		// only runs on a full recompute. A project-scoped run (an import) drives R1 alone and reads
+		// the AFFECTS a prior recompute already materialised — this avoids a full-graph range scan
+		// on every import and keeps scoped runs from half-updating other projects' exposure.
+		if (!scope.isAll()) {
+			return 0L;
+		}
 		List<R2Hit> hits = this.repository.r2Candidates()
 			.stream()
 			.filter(c -> this.evaluator.evaluate(c.rangesJson(), c.purlType(), c.version())

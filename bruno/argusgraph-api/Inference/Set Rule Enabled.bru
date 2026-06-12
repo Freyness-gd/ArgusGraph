@@ -1,0 +1,15 @@
+meta {
+  name: Set Rule Enabled
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/inference/rules/R1-step/enabled?enabled=false
+  body: none
+  auth: none
+}
+
+params:query {
+  enabled: false
+}

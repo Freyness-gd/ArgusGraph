@@ -1,0 +1,15 @@
+meta {
+  name: Reorder Rules
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/inference/rules/order
+  body: json
+  auth: none
+}
+
+body:json {
+  ["R2", "R1-base", "R1-step"]
+}

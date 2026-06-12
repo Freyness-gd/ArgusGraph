@@ -7,28 +7,35 @@ See: .planning/PROJECT.md
 **Core value:** Transitive vulnerability detection as a graph problem — dependencies +
 advisories in one version-level Neo4j knowledge graph.
 **Current focus:** Phase 4 inference engine — slices 4.1 (R1 transitive exposure), 4.2 (R2 +
-recursive R1 + fixpoint), AND 4.3 (pluggable benchmarkable engines) shipped. The engine is
-the project "heart" — a logical/Datalog-style KG reasoner with **3 switchable evaluation
-strategies** compared in the UI. Next: **slice 4.4** — embedding engine (severity imputation
-via kNN, latent `r_𝕖` reasoning) as a 4th engine + accuracy metric; then **Phase 6** —
-evaluation + ~6-page portfolio.
+recursive R1 + fixpoint), 4.3 (pluggable benchmarkable engines), 4.4 (embedding severity
+imputation — latent `r_𝕖`), AND the pluggable rule-pipeline slice all shipped. The engine is
+the project "heart" — a logical/Datalog-style KG reasoner (logical `r_𝕂`) with 3 switchable
+closure strategies, a runtime-editable ordered rule pipeline, AND a latent embedding-kNN
+severity engine — all surfaced in the UI. Next: **Phase 6** — evaluation + ~6-page portfolio.
 
 ## Current Position
 
-Phase: 4 (Inference engine) — slices 4.1, 4.2, 4.3 of N shipped
-Plan: slice 4.3 complete. Specs/plans local in `docs/superpowers/` (gitignored).
+Phase: 4 (Inference engine) — slices 4.1, 4.2, 4.3, 4.4 + the pluggable rule pipeline shipped
+Plan: 4.4 + rule pipeline complete. Specs/plans local in `docs/superpowers/` (gitignored).
 Status: Engine is a recursive multi-rule Datalog reasoner with **pluggable closure strategies**
-— `naive` (re-scan each round) / `semi-naive` (delta frontier via a `round` tag) / `native`
-(`DEPENDS_ON*` one query). All three produce IDENTICAL `TRANSITIVELY_AFFECTED` (proven by
-`EngineComparisonIntegrationTest`); `recompute?engine=` records per-run metrics (durationMs,
-rounds, queryCount, edgesDerived) into a bounded in-memory ring buffer (`InferenceRunLog`,
-cap 50). `GET /inference/runs` + a dashboard **Inference tab** (engine dropdown, run button,
-comparison table + Chart.js bar). R2 (Maven+SemVer ranges) feeds R1; scoped import = naive R1
-only. Full `clean check` green (81 tests). Working tree: untracked `tools/`.
-Last activity: 2026-06-12 — slice 4.3: ClosureStrategy + naive/semi-naive/native, RunMetrics +
-bounded run log, recompute?engine= + /runs, Inference tab (d77d122..f601b20)
+— `naive` / `semi-naive` / `native` — all producing IDENTICAL `TRANSITIVELY_AFFECTED`;
+`recompute?engine=` records per-run metrics into a bounded in-memory ring buffer
+(`InferenceRunLog`, cap 50). **Slice 4.4** adds a latent embedding engine (E1):
+`SeverityImputation` imputes `predictedSeverity`/`predictedCvssScore {predictedBy:'E1'}` for
+unscored advisories via distance-weighted kNN over the `vulnerability_embedding` index, with
+leave-one-out MAE + label-accuracy eval (`POST /inference/{impute,eval}-severity`) — never
+overwrites real scores. **Rule pipeline:** rules (R2, R1-base, R1-step) are now an in-memory,
+runtime-editable ordered catalog (`RuleRegistry`) — enable/disable + reorder via
+`GET/POST /inference/rules*`, run via `POST /inference/run-rules` (engine label `"rules"`);
+the engine runs enabled rules in order (per-rule fixpoint), behaviour-preserving for the
+default R2▶R1-base▶R1-step order. Dashboard **Inference tab** now has: engine dropdown + run +
+comparison table/Chart.js bar, a latent severity-imputation card, and a Rules card (toggle,
+▲▼ reorder, Run rules). Bruno collection has an `Inference/` folder for all endpoints. Full
+`clean check` green (99 tests). Working tree: untracked `tools/`.
+Last activity: 2026-06-13 — slice 4.4 (embedding severity imputation, latent E1) + pluggable
+rule pipeline (RuleRegistry, list/toggle/reorder + run-rules, Rules UI card), both merged to main
 
-Progress: [█████████░] ~85%
+Progress: [█████████░] ~90%
 
 ## Reconciliation (2026-06-11)
 
@@ -124,11 +131,9 @@ ROADMAP.md progress table is also stale (shows phases 2/3/5 "Not started") — u
 
 ### Pending Todos (ordered roadmap — see ROADMAP.md)
 
-- **Slice 4.4 (next):** embedding engine — severity imputation (above) + accuracy eval. Adds
-  a 4th switchable engine (latent `r_𝕖`) alongside the 3 logical ones. Design not yet started.
-  Note: 4.3's `ClosureStrategy` / `RunMetrics` / `InferenceRunLog` are the slots it plugs into,
-  but severity imputation is a different *kind* of output (`predictedSeverity`, not
-  `TRANSITIVELY_AFFECTED`) — the strategy/metrics abstraction may need a small generalisation.
+- **Phase 6 (next):** evaluation + ~6-page portfolio. Slice 4.4 (latent embedding engine E1) and
+  the pluggable rule pipeline are DONE & merged — the comparison surface now spans the logical
+  engines (naive/semi-naive/native: time·rounds·queryCount) and the latent engine (MAE·label-accuracy).
 - **Phase 6:** evaluation + ~6-page portfolio (comparison tables/charts: speed·storage·
   accuracy; course vocabulary).
 - **Optional 4.2b:** R3 alias merge (`SAME_AS`), R4 withdrawn retraction → stratified
@@ -161,14 +166,16 @@ ROADMAP.md progress table is also stale (shows phases 2/3/5 "Not started") — u
 
 ## Session Continuity
 
-Last session: 2026-06-12 — Phase 4 **slice 4.3** (pluggable benchmarkable engines) shipped via
-subagent-driven development: `ClosureStrategy` + naive/semi-naive/native, `RunMetrics` +
-bounded `InferenceRunLog`, `recompute?engine=` + `GET /runs`, dashboard Inference tab.
-Equivalence proven (3 engines, identical exposure). Full `clean check` green (81 tests). Merged
-to main (fast-forward, d77d122..f601b20). Same day earlier: slices 4.1 + 4.2, severity badge
-colours, architecture diagrams, three bugfixes. Extensive design this session (engine-as-heart,
-Datalog realization = Cypher-only, 3-engine comparison, embedding severity imputation) grounded
-against the TU Wien KG course slides (Parts 2/3/4).
-Stopped at: f601b20. Working tree: untracked `tools/` only.
-Resume file: None — next is **slice 4.4** (embedding severity-imputation engine). Design not
-yet started; spec/plan not written.
+Last session: 2026-06-13 — Phase 4 **slice 4.4** (embedding severity imputation — latent engine
+E1) AND the **pluggable rule-pipeline** slice shipped via subagent-driven development. 4.4:
+`SeverityBands`, `SeverityImputation` (distance-weighted kNN + leave-one-out MAE/label-accuracy),
+repo kNN Cypher, `{impute,eval}-severity` endpoints, integration test (seeds embeddings via
+`attachEmbedding`), Inference-tab card. Rule pipeline: in-memory `RuleRegistry` (ordered,
+enable/disable, reorder), `run()` refactored to a per-rule fixpoint over the registry
+(behaviour-preserving), `runRules()` + `rules`/`rules/{name}/enabled`/`rules/order`/`run-rules`
+endpoints, integration test (disabling R2 zeroes exposure), Rules UI card. Bruno `Inference/`
+folder added; STATE/ROADMAP updated. Full `clean check` green (99 tests). Both slices merged to
+main (fast-forward).
+Stopped at: rule-pipeline merge on main. Working tree: untracked `tools/` only.
+Resume file: None — next is **Phase 6** (evaluation + ~6-page portfolio). Optional: slice 4.2b
+(R3 `SAME_AS` merge + R4 withdrawn retraction → stratified-negation story).

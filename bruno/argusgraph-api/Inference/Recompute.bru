@@ -1,0 +1,15 @@
+meta {
+  name: Recompute
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/inference/recompute?engine=naive
+  body: none
+  auth: none
+}
+
+params:query {
+  engine: naive
+}

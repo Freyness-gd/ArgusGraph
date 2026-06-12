@@ -21,6 +21,16 @@ class EcosystemVersionsTest {
 	}
 
 	@Test
+	void semverNumericPrereleaseIdBeforeAlphanumericAndIgnoresVPrefixAndBuildMetadata() {
+		Comparator<String> c = SemverComparator.INSTANCE;
+		// A numeric pre-release identifier always has lower precedence than an alphanumeric one.
+		assertThat(c.compare("1.0.0-1", "1.0.0-alpha")).isNegative();
+		// A leading "v" is cosmetic and build metadata is ignored, so these compare equal.
+		assertThat(c.compare("v1.0.0", "1.0.0")).isZero();
+		assertThat(c.compare("1.0.0+build1", "1.0.0+build2")).isZero();
+	}
+
+	@Test
 	void selectsSemverForSemverRangeType() {
 		assertThat(EcosystemVersions.comparatorFor("SEMVER", "npm")).isPresent();
 		assertThat(EcosystemVersions.comparatorFor("SEMVER", "anything")).isPresent();

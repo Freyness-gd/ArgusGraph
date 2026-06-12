@@ -58,4 +58,43 @@ class OsvRangeEvaluatorTest {
 				""";
 		assertThat(evaluator.evaluate(r, "maven", "1.0")).isEqualTo(OsvRangeEvaluator.Verdict.UNRESOLVED);
 	}
+
+	@Test
+	void multiIntervalSingleRangeAffectsEachOpenInterval() {
+		// Two disjoint affected intervals in one range: [1.0,1.2) and [2.0,2.5).
+		String r = """
+				[{"type":"SEMVER","events":[{"introduced":"1.0.0"},{"fixed":"1.2.0"},
+				                            {"introduced":"2.0.0"},{"fixed":"2.5.0"}]}]
+				""";
+		assertThat(evaluator.evaluate(r, "npm", "1.1.0")).isEqualTo(OsvRangeEvaluator.Verdict.AFFECTED);
+		assertThat(evaluator.evaluate(r, "npm", "1.5.0")).isEqualTo(OsvRangeEvaluator.Verdict.NOT_AFFECTED);
+		assertThat(evaluator.evaluate(r, "npm", "2.1.0")).isEqualTo(OsvRangeEvaluator.Verdict.AFFECTED);
+		assertThat(evaluator.evaluate(r, "npm", "3.0.0")).isEqualTo(OsvRangeEvaluator.Verdict.NOT_AFFECTED);
+	}
+
+	@Test
+	void openEndedIntroducedHasNoUpperBound() {
+		String r = """
+				[{"type":"SEMVER","events":[{"introduced":"1.0.0"}]}]
+				""";
+		assertThat(evaluator.evaluate(r, "npm", "9.9.9")).isEqualTo(OsvRangeEvaluator.Verdict.AFFECTED);
+	}
+
+	@Test
+	void mixedSupportedAndUnsupportedRangesWhereSupportedMissesIsNotAffected() {
+		// One GIT range (unsupported, skipped) plus one SEMVER range that does not contain the
+		// version: a supported range decided it, so NOT_AFFECTED rather than UNRESOLVED.
+		String r = """
+				[{"type":"GIT","events":[{"introduced":"0"}]},
+				 {"type":"SEMVER","events":[{"introduced":"1.0.0"},{"fixed":"2.0.0"}]}]
+				""";
+		assertThat(evaluator.evaluate(r, "npm", "3.0.0")).isEqualTo(OsvRangeEvaluator.Verdict.NOT_AFFECTED);
+	}
+
+	@Test
+	void malformedRangesAreUnresolved() {
+		assertThat(evaluator.evaluate("  ", "maven", "1.0")).isEqualTo(OsvRangeEvaluator.Verdict.UNRESOLVED);
+		assertThat(evaluator.evaluate("{}", "maven", "1.0")).isEqualTo(OsvRangeEvaluator.Verdict.UNRESOLVED);
+		assertThat(evaluator.evaluate("[]", "maven", "1.0")).isEqualTo(OsvRangeEvaluator.Verdict.UNRESOLVED);
+	}
 }

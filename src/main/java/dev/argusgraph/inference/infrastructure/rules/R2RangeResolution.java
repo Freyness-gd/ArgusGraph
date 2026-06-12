@@ -61,7 +61,9 @@ public class R2RangeResolution implements InferenceRule {
 					== OsvRangeEvaluator.Verdict.AFFECTED)
 			.map(c -> new R2Hit(c.vulnId(), c.purl()))
 			.toList();
-		return hits.isEmpty() ? 0 : this.repository.writeR2Affects(hits);
+		// Always run the write (an empty UNWIND is a cheap no-op) so the orchestrator's query
+		// count stays honest — R2 is two Cypher round-trips (candidate scan + write) every run.
+		return this.repository.writeR2Affects(hits);
 	}
 
 }

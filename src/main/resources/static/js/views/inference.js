@@ -9,6 +9,8 @@ export const InferenceView = {
   engine: "naive",
   runs: [],
   running: false,
+  rules: [],
+  runningRules: false,
   imputing: false,
   evaluating: false,
   eval: null,
@@ -19,6 +21,34 @@ export const InferenceView = {
       .then((runs) => { this.runs = runs; })
       .catch((err) => toast.error(err))
       .finally(m.redraw);
+    get("/inference/rules")
+      .then((rules) => { this.rules = rules; })
+      .catch((err) => toast.error(err))
+      .finally(m.redraw);
+  },
+  toggleRule(name, enabled) {
+    post(`/inference/rules/${encodeURIComponent(name)}/enabled?enabled=${enabled}`)
+      .then((rules) => { this.rules = rules; })
+      .catch((err) => toast.error(err))
+      .finally(m.redraw);
+  },
+  moveRule(index, dir) {
+    const order = this.rules.map((r) => r.name);
+    const j = index + dir;
+    if (j < 0 || j >= order.length) return;
+    [order[index], order[j]] = [order[j], order[index]];
+    post("/inference/rules/order", order)
+      .then((rules) => { this.rules = rules; })
+      .catch((err) => toast.error(err))
+      .finally(m.redraw);
+  },
+  runRules() {
+    this.runningRules = true;
+    post("/inference/run-rules")
+      .then((r) => toast.ok(`rules: ${r.durationMs} ms · ${r.rounds} rounds · ${r.queryCount} queries · ${r.edgesWritten} edges`))
+      .then(() => this.load())
+      .catch((err) => toast.error(err))
+      .finally(() => { this.runningRules = false; m.redraw(); });
   },
   run() {
     this.running = true;
@@ -54,6 +84,29 @@ export const InferenceView = {
             ENGINES.map((eng) => m("option", { value: eng, selected: eng === this.engine }, eng))),
           m("button", { disabled: this.running, onclick: () => this.run() },
             this.running ? "Running…" : "Run recompute"),
+        ]),
+      ]),
+      m(".card", [
+        m(".card-label", "Rules — pluggable pipeline"),
+        m("p.muted", "The engine runs these rules top-to-bottom. Toggle a rule off to exclude it, "
+            + "reorder with the arrows, then Run rules to rebuild derived edges in this order."),
+        this.rules.length > 0 && m("table", [
+          m("thead", m("tr", ["On", "Rule", "Stratum", "Recursive", "Order"].map((h) => m("th", h)))),
+          m("tbody", this.rules.map((r, i) => m("tr", [
+            m("td", m("input", { type: "checkbox", checked: r.enabled,
+              onchange: (e) => this.toggleRule(r.name, e.target.checked) })),
+            m("td", r.name),
+            m("td", r.stratum),
+            m("td", r.recursive ? "yes" : "no"),
+            m("td", [
+              m("button", { disabled: i === 0, onclick: () => this.moveRule(i, -1) }, "▲"),
+              m("button", { disabled: i === this.rules.length - 1, onclick: () => this.moveRule(i, 1) }, "▼"),
+            ]),
+          ]))),
+        ]),
+        m(".filters", [
+          m("button", { disabled: this.runningRules, onclick: () => this.runRules() },
+            this.runningRules ? "Running…" : "Run rules"),
         ]),
       ]),
       this.runs.length > 0 && m(".card", [

@@ -10,7 +10,7 @@ to scraper workers and the logic-based inference engine from the project proposa
 - [x] **Phase 1: Skeleton** — rename to ArgusGraph, bootstrap Neo4j, working ingest → graph pipeline.
 - [x] **Phase 2: Data import** — OSV-schema ingest, CVSS derivation, embeddings, RabbitMQ worker. (Gap: UNWIND bulk path.)
 - [~] **Phase 3: Scraper workers** — partial: manual OSV fetch trigger, job registry/status, graph reset. (No continuous polling yet.)
-- [~] **Phase 4: Inference engine** — slice 1 (R1 transitive exposure) shipped; R2 range resolution + deps.dev next.
+- [~] **Phase 4: Inference engine** — slices 4.1 (R1 transitive exposure) + 4.2 (R2 range resolution + recursive R1 + stratified fixpoint) shipped; 4.3 pluggable/benchmarkable engines + 4.4 embedding severity imputation next.
 - [~] **Phase 5: SBOM upload + GUI** — Mithril dashboard + project import + transitive exposure card shipped ahead of order.
 
 ## Phase Details
@@ -58,5 +58,5 @@ exposure in a minimal UI.
 | 1. Skeleton        | done  | Done            | 2026-06-10 |
 | 2. Data import     | done  | Done (UNWIND gap)| 2026-06-11 |
 | 3. Scraper workers | —     | Partial         | -          |
-| 4. Inference engine| 1/N   | Slice 1 (R1) done| 2026-06-12 |
+| 4. Inference engine| 2/N   | Slices 4.1+4.2 done | 2026-06-12 |
 | 5. SBOM + GUI      | —     | Substantially done | 2026-06-11 |

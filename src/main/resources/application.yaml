@@ -38,7 +38,9 @@ spring:
           initial-interval: 1s
           multiplier: 3
           max-interval: 10s
-
+        concurrency: 2
+        max-concurrency: 4
+        prefetch: 10
   # ── Projects datasource (H2) ─────────────────────────────────────────────────
   # Imported SBOM projects live OUTSIDE the graph in an embedded H2 file. Tests
   # override to in-memory. Schema bootstraps from schema.sql (IF NOT EXISTS).

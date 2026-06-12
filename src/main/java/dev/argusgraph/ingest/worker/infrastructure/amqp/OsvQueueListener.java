@@ -21,7 +21,7 @@ class OsvQueueListener {
 
 	private final OsvDocumentHandler handler;
 
-	@RabbitListener(queues = IngestRouting.OSV_QUEUE)
+	@RabbitListener(queues = IngestRouting.OSV_QUEUE, concurrency = "2-4")
 	void onOsvDocument(String rawDocument) {
 		this.handler.handle(rawDocument);
 	}

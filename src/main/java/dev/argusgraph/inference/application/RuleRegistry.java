@@ -52,7 +52,11 @@ public class RuleRegistry {
 		throw new BusinessRuleException("Unknown rule: " + name);
 	}
 
-	/** Reorder the whole catalog. {@code orderedNames} must be a permutation of the current rule names. */
+	/**
+	 * Reorder the whole catalog. {@code orderedNames} must be a permutation of the current rule names.
+	 * Order is user-controlled and not validated against rule strata — placing a dependent rule before
+	 * its prerequisite (e.g. R1 before R2) will change the derived result.
+	 */
 	public synchronized void reorder(List<String> orderedNames) {
 		Map<String, Entry> byName = new LinkedHashMap<>();
 		for (Entry e : this.entries) {

@@ -31,6 +31,26 @@ public interface InferenceAPI {
 	/** Leave-one-out accuracy of the embedding severity predictor. */
 	EvalResult evaluateSeverity();
 
+	/** The rule pipeline in execution order (enabled and disabled). */
+	List<RuleView> rules();
+
+	/** Enable or disable a rule by name. */
+	void setRuleEnabled(String name, boolean enabled);
+
+	/**
+	 * Reorder the rule pipeline; {@code orderedNames} must be a permutation of the current rule names.
+	 * Order is not stratum-validated — running a rule before the rule it depends on changes the result
+	 * (intentional: the pipeline is user-orderable).
+	 */
+	void reorderRules(List<String> orderedNames);
+
+	/** Full rebuild via the ordered rule pipeline (delete derived, then run enabled rules in order). */
+	RunResult runRules();
+
+	/** A rule in the pipeline: identity, stratum/recursion metadata, and whether it currently runs. */
+	record RuleView(String name, int version, int stratum, boolean recursive, boolean enabled) {
+	}
+
 	/** Metrics for one recompute run. */
 	record RunResult(String engine, long durationMs, int rounds, long queryCount, long edgesDerived, long timestamp) {
 	}

@@ -1,12 +1,10 @@
 package dev.argusgraph.inference.application;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import dev.argusgraph.inference.InferenceAPI;
 import dev.argusgraph.inference.InferenceAPI.EvalResult;
 import dev.argusgraph.inference.InferenceAPI.ImputeResult;
+import dev.argusgraph.inference.InferenceAPI.RuleView;
 import dev.argusgraph.inference.application.embedding.SeverityImputation;
 import dev.argusgraph.inference.application.strategy.ClosureStrategy;
 import dev.argusgraph.inference.application.strategy.RunMetrics;
@@ -32,7 +31,7 @@ public class InferenceService implements InferenceAPI {
 
 	private static final String DEFAULT_ENGINE = "naive";
 
-	private final List<InferenceRule> rules;
+	private final RuleRegistry ruleRegistry;
 
 	private final R2RangeResolution rangeResolution;
 
@@ -44,10 +43,10 @@ public class InferenceService implements InferenceAPI {
 
 	private final Map<String, ClosureStrategy> strategies = new LinkedHashMap<>();
 
-	public InferenceService(List<InferenceRule> rules, R2RangeResolution rangeResolution,
+	public InferenceService(RuleRegistry ruleRegistry, R2RangeResolution rangeResolution,
 			InferenceRepository repository, InferenceRunLog runLog, SeverityImputation severityImputation,
 			List<ClosureStrategy> closureStrategies) {
-		this.rules = rules;
+		this.ruleRegistry = ruleRegistry;
 		this.rangeResolution = rangeResolution;
 		this.repository = repository;
 		this.runLog = runLog;
@@ -115,24 +114,58 @@ public class InferenceService implements InferenceAPI {
 		return this.severityImputation.evaluate();
 	}
 
+	@Override
+	@Transactional(transactionManager = "neo4jTransactionManager")
+	public RunResult runRules() {
+		RunMetrics metrics = new RunMetrics("rules");
+		this.repository.deleteTransitive();
+		metrics.query();
+		this.repository.deleteR2Affects();
+		metrics.query();
+		metrics.derived(applyRules(InferenceScope.all(), metrics));
+		RunResult result = metrics.finish();
+		this.runLog.record(result);
+		return result;
+	}
+
+	@Override
+	public List<RuleView> rules() {
+		return this.ruleRegistry.entries()
+			.stream()
+			.map(e -> new RuleView(e.rule().name(), e.rule().version(), e.rule().stratum(), e.rule().recursive(),
+					e.enabled()))
+			.toList();
+	}
+
+	@Override
+	public void setRuleEnabled(String name, boolean enabled) {
+		this.ruleRegistry.setEnabled(name, enabled);
+	}
+
+	@Override
+	public void reorderRules(List<String> orderedNames) {
+		this.ruleRegistry.reorder(orderedNames);
+	}
+
 	private long run(InferenceScope scope) {
-		TreeMap<Integer, List<InferenceRule>> byStratum = new TreeMap<>();
-		for (InferenceRule rule : this.rules) {
-			byStratum.computeIfAbsent(rule.stratum(), k -> new ArrayList<>()).add(rule);
-		}
+		return applyRules(scope, null);
+	}
+
+	/** Run each enabled rule in registry order; a recursive rule iterates until it creates no edges. */
+	private long applyRules(InferenceScope scope, RunMetrics metrics) {
 		long total = 0;
-		for (Map.Entry<Integer, List<InferenceRule>> stratum : byStratum.entrySet()) {
-			List<InferenceRule> rs = stratum.getValue();
-			boolean iterate = rs.stream().anyMatch(InferenceRule::recursive);
+		for (InferenceRule rule : this.ruleRegistry.enabledInOrder()) {
+			boolean recursive = rule.recursive();
 			long round;
 			do {
-				round = 0;
-				for (InferenceRule rule : rs) {
-					round += rule.apply(scope);
-				}
+				round = rule.apply(scope);
 				total += round;
+				if (metrics != null) {
+					metrics.round();
+					metrics.query();
+				}
 			}
-			while (iterate && round > 0);
+			while (recursive && round > 0);
 		}
 		return total;
 	}

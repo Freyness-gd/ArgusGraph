@@ -129,6 +129,40 @@ class Neo4jInferenceRepository implements InferenceRepository {
 										   summary: v.summary, depth: t.depth}) WHERE x.id IS NOT NULL] AS vulnerabilities
 			""";
 
+	private static final String IMPUTE_CANDIDATES = """
+			MATCH (v:Vulnerability) WHERE v.embedding IS NOT NULL AND v.cvssScore IS NULL
+			CALL (v) {
+			    CALL db.index.vector.queryNodes('vulnerability_embedding', $overfetch, v.embedding)
+			        YIELD node, score
+			    WHERE node <> v AND node.cvssScore IS NOT NULL
+			    RETURN node, score ORDER BY score DESC
+			}
+			WITH v, collect({score: score, cvss: node.cvssScore})[0..$k] AS neighbours
+			WHERE size(neighbours) > 0
+			RETURN v.id AS vulnId, neighbours
+			""";
+
+	private static final String EVAL_CANDIDATES = """
+			MATCH (v:Vulnerability) WHERE v.embedding IS NOT NULL AND v.cvssScore IS NOT NULL
+			CALL (v) {
+			    CALL db.index.vector.queryNodes('vulnerability_embedding', $overfetch, v.embedding)
+			        YIELD node, score
+			    WHERE node <> v AND node.cvssScore IS NOT NULL
+			    RETURN node, score ORDER BY score DESC
+			}
+			WITH v, collect({score: score, cvss: node.cvssScore})[0..$k] AS neighbours
+			WHERE size(neighbours) > 0
+			RETURN v.id AS vulnId, v.cvssScore AS actual, neighbours
+			""";
+
+	private static final String WRITE_PREDICTIONS = """
+			UNWIND $preds AS p
+			MATCH (v:Vulnerability {id: p.vulnId})
+			SET v.predictedCvssScore = p.cvss, v.predictedSeverity = p.severity,
+			    v.predictionConfidence = p.confidence, v.predictedBy = 'E1'
+			RETURN count(v) AS written
+			""";
+
 	private final Neo4jClient neo4j;
 
 	@Override
@@ -209,6 +243,49 @@ class Neo4jInferenceRepository implements InferenceRepository {
 		Map<String, Object> params = new HashMap<>();
 		params.put("sourcePurls", sourcePurls == null ? null : List.copyOf(sourcePurls));
 		return this.neo4j.query(cypher).bindAll(params).fetchAs(Long.class).one().orElse(0L);
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<InferenceRepository.NeighbourSet> imputeCandidates(int overfetch, int k) {
+		return this.neo4j.query(IMPUTE_CANDIDATES)
+			.bindAll(Map.of("overfetch", overfetch, "k", k))
+			.fetch()
+			.all()
+			.stream()
+			.map(row -> new InferenceRepository.NeighbourSet((String) row.get("vulnId"),
+					neighbours((List<Map<String, Object>>) row.get("neighbours"))))
+			.toList();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public List<InferenceRepository.EvalCandidate> evalCandidates(int overfetch, int k) {
+		return this.neo4j.query(EVAL_CANDIDATES)
+			.bindAll(Map.of("overfetch", overfetch, "k", k))
+			.fetch()
+			.all()
+			.stream()
+			.map(row -> new InferenceRepository.EvalCandidate((String) row.get("vulnId"),
+					((Number) row.get("actual")).doubleValue(),
+					neighbours((List<Map<String, Object>>) row.get("neighbours"))))
+			.toList();
+	}
+
+	@Override
+	public long writePredictions(List<InferenceRepository.Prediction> predictions) {
+		List<Map<String, Object>> rows = predictions.stream()
+			.map(p -> Map.<String, Object>of("vulnId", p.vulnId(), "cvss", p.cvss(),
+					"severity", p.severity(), "confidence", p.confidence()))
+			.toList();
+		return this.neo4j.query(WRITE_PREDICTIONS).bindAll(Map.of("preds", rows)).fetchAs(Long.class).one().orElse(0L);
+	}
+
+	private static List<InferenceRepository.Neighbour> neighbours(List<Map<String, Object>> raw) {
+		return raw.stream()
+			.map(n -> new InferenceRepository.Neighbour(((Number) n.get("score")).doubleValue(),
+					((Number) n.get("cvss")).doubleValue()))
+			.toList();
 	}
 
 }

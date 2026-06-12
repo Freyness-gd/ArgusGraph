@@ -46,4 +46,29 @@ public interface InferenceRepository {
 	record R2Hit(String vulnId, String purl) {
 	}
 
+	/** Unscored embedded vulns with their k nearest SCORED neighbours (for imputation). */
+	List<NeighbourSet> imputeCandidates(int overfetch, int k);
+
+	/** Scored embedded vulns with their actual score + k nearest OTHER scored neighbours (leave-one-out). */
+	List<EvalCandidate> evalCandidates(int overfetch, int k);
+
+	/** Write imputed predictions onto the vulnerability nodes. Returns count written. */
+	long writePredictions(List<Prediction> predictions);
+
+	/** One unscored vuln and its scored neighbours. */
+	record NeighbourSet(String vulnId, List<Neighbour> neighbours) {
+	}
+
+	/** One scored vuln (leave-one-out target) and its other scored neighbours. */
+	record EvalCandidate(String vulnId, double actual, List<Neighbour> neighbours) {
+	}
+
+	/** A scored neighbour: similarity score from the vector index + its CVSS base score. */
+	record Neighbour(double score, double cvss) {
+	}
+
+	/** A prediction to persist. */
+	record Prediction(String vulnId, double cvss, String severity, double confidence) {
+	}
+
 }

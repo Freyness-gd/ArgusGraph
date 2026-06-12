@@ -25,6 +25,12 @@ public interface InferenceAPI {
 	/** Transitive vulnerability exposure for each of the given package-version purls. */
 	List<TransitiveHit> transitiveExposure(Collection<String> purls);
 
+	/** Run severity imputation over unscored embedded vulns; returns count + duration. */
+	ImputeResult imputeSeverity();
+
+	/** Leave-one-out accuracy of the embedding severity predictor. */
+	EvalResult evaluateSeverity();
+
 	/** Metrics for one recompute run. */
 	record RunResult(String engine, long durationMs, int rounds, long queryCount, long edgesDerived, long timestamp) {
 	}
@@ -39,6 +45,14 @@ public interface InferenceAPI {
 
 	/** One vulnerability reaching a source purl transitively, with the shortest dependency depth. */
 	record TransitiveVuln(String id, String severity, Double cvssScore, String summary, int depth) {
+	}
+
+	/** Result of an imputation run. */
+	record ImputeResult(long predicted, long durationMs) {
+	}
+
+	/** Leave-one-out evaluation: mean absolute error on CVSS, label-band accuracy, sample size. */
+	record EvalResult(long n, double mae, double labelAccuracy, long durationMs) {
 	}
 
 }

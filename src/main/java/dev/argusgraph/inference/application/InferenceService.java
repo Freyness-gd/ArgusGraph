@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import dev.argusgraph.inference.InferenceAPI;
+import dev.argusgraph.inference.InferenceAPI.EvalResult;
+import dev.argusgraph.inference.InferenceAPI.ImputeResult;
+import dev.argusgraph.inference.application.embedding.SeverityImputation;
 import dev.argusgraph.inference.application.strategy.ClosureStrategy;
 import dev.argusgraph.inference.application.strategy.RunMetrics;
 import dev.argusgraph.inference.infrastructure.rules.R2RangeResolution;
@@ -37,14 +40,18 @@ public class InferenceService implements InferenceAPI {
 
 	private final InferenceRunLog runLog;
 
+	private final SeverityImputation severityImputation;
+
 	private final Map<String, ClosureStrategy> strategies = new LinkedHashMap<>();
 
 	public InferenceService(List<InferenceRule> rules, R2RangeResolution rangeResolution,
-			InferenceRepository repository, InferenceRunLog runLog, List<ClosureStrategy> closureStrategies) {
+			InferenceRepository repository, InferenceRunLog runLog, SeverityImputation severityImputation,
+			List<ClosureStrategy> closureStrategies) {
 		this.rules = rules;
 		this.rangeResolution = rangeResolution;
 		this.repository = repository;
 		this.runLog = runLog;
+		this.severityImputation = severityImputation;
 		for (ClosureStrategy strategy : closureStrategies) {
 			this.strategies.put(strategy.name(), strategy);
 		}
@@ -96,6 +103,16 @@ public class InferenceService implements InferenceAPI {
 			return List.of();
 		}
 		return this.repository.readTransitive(purls);
+	}
+
+	@Override
+	public ImputeResult imputeSeverity() {
+		return this.severityImputation.impute();
+	}
+
+	@Override
+	public EvalResult evaluateSeverity() {
+		return this.severityImputation.evaluate();
 	}
 
 	private long run(InferenceScope scope) {

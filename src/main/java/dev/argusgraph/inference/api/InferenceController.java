@@ -34,6 +34,18 @@ public class InferenceController {
 		return this.inference.recentRuns().stream().map(RunResponse::from).toList();
 	}
 
+	@PostMapping("/impute-severity")
+	@Operation(summary = "Impute CVSS severity for unscored advisories via embedding k-NN (latent engine)")
+	public InferenceAPI.ImputeResult imputeSeverity() {
+		return this.inference.imputeSeverity();
+	}
+
+	@PostMapping("/eval-severity")
+	@Operation(summary = "Leave-one-out accuracy (MAE + label accuracy) of the embedding severity predictor")
+	public InferenceAPI.EvalResult evalSeverity() {
+		return this.inference.evaluateSeverity();
+	}
+
 	/** Metrics of one recompute run. {@code edgesWritten} kept for back-compat. */
 	public record RunResponse(String engine, long edgesWritten, long durationMs, int rounds, long queryCount,
 			long timestamp) {

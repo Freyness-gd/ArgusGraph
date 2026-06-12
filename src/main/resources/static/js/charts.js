@@ -8,8 +8,8 @@ Chart.defaults.animation = false;
 
 export const SEVERITY_COLORS = {
   CRITICAL: "#da3633",
-  HIGH: "#bb8009",
-  MEDIUM: "#9e6a03",
+  HIGH: "#db6d28",
+  MEDIUM: "#e3b341",
   LOW: "#30363d",
   NONE: "#21262d",
 };

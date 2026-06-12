@@ -12,10 +12,11 @@
   --ok: #3fb950;
   --danger: #f85149;
   --sev-critical: #da3633;
-  --sev-high: #bb8009;
-  --sev-medium: #9e6a03;
+  --sev-high: #db6d28;
+  --sev-medium: #e3b341;
   --sev-low: #30363d;
   --sev-none: #21262d;
+  --verdict-unknown: #484f58;
   --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
@@ -91,7 +92,7 @@ h1 { font-size: 18px; color: var(--text-bright); margin: 0 0 18px; }
 .badge { border-radius: 4px; padding: 2px 8px; font-size: 12px; color: #fff; }
 .sev-critical { background: var(--sev-critical); }
 .sev-high { background: var(--sev-high); }
-.sev-medium { background: var(--sev-medium); }
+.sev-medium { background: var(--sev-medium); color: var(--bg); }
 .sev-low { background: var(--sev-low); color: var(--text); }
 .sev-none { background: var(--sev-none); color: var(--muted); }
 .sev-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin-top: 12px; }
@@ -173,7 +174,7 @@ a { color: var(--accent); }
 /* ── Project verdicts ── */
 .badge.verdict-affected { background: var(--sev-critical); }
 .badge.verdict-transitive { background: #bb8009; }
-.badge.verdict-unknown { background: var(--sev-none); color: var(--muted); }
+.badge.verdict-unknown { background: var(--verdict-unknown); color: var(--text); }
 .badge.verdict-clean { background: #238636; }
 
 /* ── Charts ── */

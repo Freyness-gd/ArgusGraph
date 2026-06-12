@@ -1,18 +1,24 @@
 package dev.argusgraph.inference.application;
 
 /**
- * One materialised forward-chaining rule: a Cypher MATCH…MERGE that writes provenance-tagged
- * derived edges, idempotently. Rules are ordered and run to fixpoint by the engine.
+ * One materialised forward-chaining rule. Rules are grouped into strata (ascending) and run
+ * in order; a stratum containing a recursive rule is iterated to fixpoint. {@code apply}
+ * performs ONE round and returns the number of edges CREATED (not merged), so the engine can
+ * detect the fixpoint.
  */
 public interface InferenceRule {
 
-	/** Stable identifier stored as {@code inferredBy} provenance (e.g. {@code "R1"}). */
 	String name();
 
-	/** Bump when the rule's logic changes, stored as {@code ruleVersion} provenance. */
 	int version();
 
-	/** Apply the rule over the scope; return the number of derived edges written. */
+	/** Execution order; lower strata run first. Rules in the same stratum run together. */
+	int stratum();
+
+	/** True if the engine must iterate this rule's stratum until no edge is created. */
+	boolean recursive();
+
+	/** One round over the scope; returns edges created this round. */
 	long apply(InferenceScope scope);
 
 }

@@ -1,8 +1,11 @@
 package dev.argusgraph.inference.application;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -11,8 +14,9 @@ import org.springframework.transaction.annotation.Transactional;
 import dev.argusgraph.inference.InferenceAPI;
 
 /**
- * Runs the ordered rule catalog to fixpoint and serves derived results. With a single rule
- * (R1) the loop settles in one pass; the structure is ready for R2…Rn feeding each other.
+ * Stratified naive forward-chaining engine. Rules run by ascending stratum; a stratum with a
+ * recursive rule is iterated until a full round creates nothing new (the fixpoint / chase).
+ * With R2 (stratum 0) feeding R1 (stratum 1) this is correct without a global cycle.
  */
 @Service
 @org.jmolecules.ddd.annotation.Service
@@ -26,8 +30,9 @@ public class InferenceService implements InferenceAPI {
 	@Override
 	@Transactional(transactionManager = "neo4jTransactionManager")
 	public long recomputeAll() {
-		this.repository.deleteR1();
-		return runToFixpoint(InferenceScope.all());
+		this.repository.deleteTransitive();
+		this.repository.deleteR2Affects();
+		return run(InferenceScope.all());
 	}
 
 	@Override
@@ -36,7 +41,8 @@ public class InferenceService implements InferenceAPI {
 		if (sourcePurls == null || sourcePurls.isEmpty()) {
 			return 0L;
 		}
-		return runToFixpoint(InferenceScope.of(sourcePurls));
+		// Import-scoped run drives all strata; R2's AFFECTS write is idempotent across imports.
+		return run(InferenceScope.of(sourcePurls));
 	}
 
 	@Override
@@ -48,13 +54,24 @@ public class InferenceService implements InferenceAPI {
 		return this.repository.readTransitive(purls);
 	}
 
-	private long runToFixpoint(InferenceScope scope) {
-		// R1 computes full transitivity in one pass (DEPENDS_ON*). Single-rule catalog ⇒ one pass.
-		// When rules that feed each other are added, replace with a change-detecting loop that
-		// compares derived-edge counts between passes rather than MERGE write counts.
-		long total = 0;
+	private long run(InferenceScope scope) {
+		TreeMap<Integer, List<InferenceRule>> byStratum = new TreeMap<>();
 		for (InferenceRule rule : this.rules) {
-			total += rule.apply(scope);
+			byStratum.computeIfAbsent(rule.stratum(), k -> new ArrayList<>()).add(rule);
+		}
+		long total = 0;
+		for (Map.Entry<Integer, List<InferenceRule>> stratum : byStratum.entrySet()) {
+			List<InferenceRule> rs = stratum.getValue();
+			boolean iterate = rs.stream().anyMatch(InferenceRule::recursive);
+			long round;
+			do {
+				round = 0;
+				for (InferenceRule rule : rs) {
+					round += rule.apply(scope);
+				}
+				total += round;
+			}
+			while (iterate && round > 0);
 		}
 		return total;
 	}

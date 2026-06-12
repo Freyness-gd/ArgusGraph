@@ -14,29 +14,69 @@ import dev.argusgraph.inference.application.InferenceRepository;
 
 /**
  * Cypher adapter for the inference module's derived edges. Reads the graph module's
- * authoritative {@code AFFECTS}/{@code DEPENDS_ON} edges and owns the derived
- * {@code TRANSITIVELY_AFFECTED} edge, separable by its {@code inferredBy} provenance.
+ * authoritative {@code AFFECTS}/{@code DEPENDS_ON} edges, owns the derived
+ * {@code TRANSITIVELY_AFFECTED} edge and the R2-derived {@code AFFECTS {inferredBy:'R2'}}
+ * edge, both separable by their {@code inferredBy} provenance. R1 is materialised one hop at a
+ * time (base + step) so the engine drives the transitive closure to fixpoint itself.
  */
 @Component
 @RequiredArgsConstructor
 class Neo4jInferenceRepository implements InferenceRepository {
 
-	// Scoped run binds $sourcePurls; full run passes null and the WHERE clause is skipped.
-	private static final String WRITE_R1 = """
-			MATCH (v:Vulnerability)-[:AFFECTS]->(target:PackageVersion)
-			MATCH (source:PackageVersion)-[:DEPENDS_ON*1..]->(target)
-			WHERE $sourcePurls IS NULL OR source.purl IN $sourcePurls
-			WITH v, source, min(length(shortestPath((source)-[:DEPENDS_ON*1..]->(target)))) AS depth
-			MERGE (v)-[t:TRANSITIVELY_AFFECTED]->(source)
-			  SET t.depth = depth, t.inferredBy = 'R1', t.ruleVersion = $ruleVersion,
-				  t.derivedAt = datetime()
-			RETURN count(t) AS written
+	private static final String R2_CANDIDATES = """
+			MATCH (v:Vulnerability)-[ap:AFFECTS_PACKAGE]->(p:Package)-[:HAS_VERSION]->(pv:PackageVersion)
+			WHERE ap.ranges IS NOT NULL
+			RETURN v.id AS vulnId, pv.purl AS purl, pv.version AS version,
+			       p.type AS purlType, ap.ranges AS rangesJson
 			""";
 
-	private static final String DELETE_R1 = """
-			MATCH (:Vulnerability)-[t:TRANSITIVELY_AFFECTED {inferredBy: 'R1'}]->(:PackageVersion)
-			DELETE t
-			RETURN count(t) AS deleted
+	private static final String WRITE_R2 = """
+			UNWIND $hits AS hit
+			MATCH (v:Vulnerability {id: hit.vulnId})
+			MATCH (pv:PackageVersion {purl: hit.purl})
+			MERGE (v)-[a:AFFECTS]->(pv)
+			  ON CREATE SET a.inferredBy = 'R2', a.derivedAt = datetime(), a._new = true
+			WITH a WHERE coalesce(a._new, false) = true
+			REMOVE a._new
+			RETURN count(a) AS created
+			""";
+
+	private static final String DELETE_R2_AFFECTS = """
+			MATCH (:Vulnerability)-[a:AFFECTS {inferredBy: 'R2'}]->(:PackageVersion)
+			DELETE a RETURN count(a) AS deleted
+			""";
+
+	// One hop only: a direct dependency on an affected package-version, depth 1.
+	private static final String WRITE_R1_BASE = """
+			MATCH (v:Vulnerability)-[:AFFECTS]->(target:PackageVersion)
+			MATCH (source:PackageVersion)-[:DEPENDS_ON]->(target)
+			WHERE $sourcePurls IS NULL OR source.purl IN $sourcePurls
+			MERGE (v)-[t:TRANSITIVELY_AFFECTED]->(source)
+			  ON CREATE SET t.depth = 1, t.inferredBy = 'R1', t.ruleVersion = 2,
+			                t.derivedAt = datetime(), t._new = true
+			WITH t WHERE coalesce(t._new, false) = true
+			REMOVE t._new
+			RETURN count(t) AS created
+			""";
+
+	// One recursive hop: extend an existing exposure by a single DEPENDS_ON edge, depth+1.
+	private static final String WRITE_R1_STEP = """
+			MATCH (v:Vulnerability)-[t:TRANSITIVELY_AFFECTED]->(mid:PackageVersion)
+			MATCH (source:PackageVersion)-[:DEPENDS_ON]->(mid)
+			WHERE $sourcePurls IS NULL OR source.purl IN $sourcePurls
+			WITH v, source, min(t.depth) + 1 AS depth
+			MERGE (v)-[t2:TRANSITIVELY_AFFECTED]->(source)
+			  ON CREATE SET t2.depth = depth, t2.inferredBy = 'R1', t2.ruleVersion = 2,
+			                t2.derivedAt = datetime(), t2._new = true
+			  ON MATCH  SET t2.depth = CASE WHEN depth < t2.depth THEN depth ELSE t2.depth END
+			WITH t2 WHERE coalesce(t2._new, false) = true
+			REMOVE t2._new
+			RETURN count(t2) AS created
+			""";
+
+	private static final String DELETE_TRANSITIVE = """
+			MATCH (:Vulnerability)-[t:TRANSITIVELY_AFFECTED]->(:PackageVersion)
+			DELETE t RETURN count(t) AS deleted
 			""";
 
 	private static final String READ_TRANSITIVE = """
@@ -52,16 +92,42 @@ class Neo4jInferenceRepository implements InferenceRepository {
 	private final Neo4jClient neo4j;
 
 	@Override
-	public long writeR1Transitive(Collection<String> sourcePurls, int ruleVersion) {
-		Map<String, Object> parameters = new HashMap<>();
-		parameters.put("sourcePurls", sourcePurls == null ? null : List.copyOf(sourcePurls));
-		parameters.put("ruleVersion", ruleVersion);
-		return this.neo4j.query(WRITE_R1).bindAll(parameters).fetchAs(Long.class).one().orElse(0L);
+	public long writeR1Base(Collection<String> sourcePurls) {
+		return run(WRITE_R1_BASE, sourcePurls);
 	}
 
 	@Override
-	public long deleteR1() {
-		return this.neo4j.query(DELETE_R1).fetchAs(Long.class).one().orElse(0L);
+	public long writeR1Step(Collection<String> sourcePurls) {
+		return run(WRITE_R1_STEP, sourcePurls);
+	}
+
+	@Override
+	public List<InferenceRepository.R2Candidate> r2Candidates() {
+		return this.neo4j.query(R2_CANDIDATES)
+			.fetch()
+			.all()
+			.stream()
+			.map(row -> new InferenceRepository.R2Candidate((String) row.get("vulnId"), (String) row.get("purl"),
+					(String) row.get("version"), (String) row.get("purlType"), (String) row.get("rangesJson")))
+			.toList();
+	}
+
+	@Override
+	public long writeR2Affects(List<InferenceRepository.R2Hit> hits) {
+		List<Map<String, Object>> rows = hits.stream()
+			.map(h -> Map.<String, Object>of("vulnId", h.vulnId(), "purl", h.purl()))
+			.toList();
+		return this.neo4j.query(WRITE_R2).bindAll(Map.of("hits", rows)).fetchAs(Long.class).one().orElse(0L);
+	}
+
+	@Override
+	public long deleteR2Affects() {
+		return this.neo4j.query(DELETE_R2_AFFECTS).fetchAs(Long.class).one().orElse(0L);
+	}
+
+	@Override
+	public long deleteTransitive() {
+		return this.neo4j.query(DELETE_TRANSITIVE).fetchAs(Long.class).one().orElse(0L);
 	}
 
 	@Override
@@ -79,6 +145,12 @@ class Neo4jInferenceRepository implements InferenceRepository {
 								(String) v.get("summary"), ((Number) v.get("depth")).intValue()))
 						.toList()))
 			.toList();
+	}
+
+	private long run(String cypher, Collection<String> sourcePurls) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("sourcePurls", sourcePurls == null ? null : List.copyOf(sourcePurls));
+		return this.neo4j.query(cypher).bindAll(params).fetchAs(Long.class).one().orElse(0L);
 	}
 
 }

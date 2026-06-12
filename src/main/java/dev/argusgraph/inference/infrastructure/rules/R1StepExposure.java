@@ -6,34 +6,39 @@ import dev.argusgraph.inference.application.InferenceRepository;
 import dev.argusgraph.inference.application.InferenceRule;
 import dev.argusgraph.inference.application.InferenceScope;
 
-/**
- * R1 — transitive exposure. {@code AFFECTS(v, target) ∧ DEPENDS_ON+(source, target)
- * ⇒ TRANSITIVELY_AFFECTED(v, source)} with the shortest dependency depth.
- */
+/** R1 recursive case: depending on an already-exposed package extends exposure one hop, depth+1. */
 @Component
-public class R1TransitiveExposure implements InferenceRule {
-
-	private static final int VERSION = 1;
+public class R1StepExposure implements InferenceRule {
 
 	private final InferenceRepository repository;
 
-	public R1TransitiveExposure(InferenceRepository repository) {
+	public R1StepExposure(InferenceRepository repository) {
 		this.repository = repository;
 	}
 
 	@Override
 	public String name() {
-		return "R1";
+		return "R1-step";
 	}
 
 	@Override
 	public int version() {
-		return VERSION;
+		return 2;
+	}
+
+	@Override
+	public int stratum() {
+		return 1;
+	}
+
+	@Override
+	public boolean recursive() {
+		return true;
 	}
 
 	@Override
 	public long apply(InferenceScope scope) {
-		return this.repository.writeR1Transitive(scope.sourcePurls(), VERSION);
+		return this.repository.writeR1Step(scope.sourcePurls());
 	}
 
 }

@@ -6,26 +6,29 @@ See: .planning/PROJECT.md
 
 **Core value:** Transitive vulnerability detection as a graph problem — dependencies +
 advisories in one version-level Neo4j knowledge graph.
-**Current focus:** Phase 4 inference engine — slices 1 (R1 transitive exposure) AND 2
-(R2 range resolution + recursive R1 + stratified fixpoint) shipped. Reframed: the engine is
-the project "heart" (a logical/Datalog-style KG reasoner) AND a **pluggable, benchmarkable
-engine slot**. Next: **slice 4.3** — pluggable engine strategies (eager/lazy/incremental,
-naive vs semi-naive) + per-run metrics + UI switch; then **slice 4.4** — embedding engine
-(severity imputation via kNN, latent reasoning); then **Phase 6** — evaluation + portfolio.
+**Current focus:** Phase 4 inference engine — slices 4.1 (R1 transitive exposure), 4.2 (R2 +
+recursive R1 + fixpoint), AND 4.3 (pluggable benchmarkable engines) shipped. The engine is
+the project "heart" — a logical/Datalog-style KG reasoner with **3 switchable evaluation
+strategies** compared in the UI. Next: **slice 4.4** — embedding engine (severity imputation
+via kNN, latent `r_𝕖` reasoning) as a 4th engine + accuracy metric; then **Phase 6** —
+evaluation + ~6-page portfolio.
 
 ## Current Position
 
-Phase: 4 (Inference engine) — slices 1 & 2 of N shipped
-Plan: slice 4.2 complete. Specs/plans local in `docs/superpowers/` (gitignored).
-Status: Engine is now a **recursive multi-rule Datalog reasoner**. R2 (stratum 0) resolves
-OSV ranges (Maven + SemVer comparators, Java built-in predicate) → `AFFECTS {inferredBy:'R2'}`;
-R1 re-expressed as recursive rules (base depth 1 + step depth+1) the engine **iterates to
-fixpoint** (stratified naive forward-chaining; R2 ▶ R1). `recomputeAll` runs R2+R1 globally;
-scoped import runs R1 only. Full `clean check` green. Working tree: untracked `tools/`.
-Last activity: 2026-06-12 — slice 4.2: version comparators, OSV range evaluator, recursive R1
-rules, R2 range resolution, stratified fixpoint engine (d76e623..5df2228)
+Phase: 4 (Inference engine) — slices 4.1, 4.2, 4.3 of N shipped
+Plan: slice 4.3 complete. Specs/plans local in `docs/superpowers/` (gitignored).
+Status: Engine is a recursive multi-rule Datalog reasoner with **pluggable closure strategies**
+— `naive` (re-scan each round) / `semi-naive` (delta frontier via a `round` tag) / `native`
+(`DEPENDS_ON*` one query). All three produce IDENTICAL `TRANSITIVELY_AFFECTED` (proven by
+`EngineComparisonIntegrationTest`); `recompute?engine=` records per-run metrics (durationMs,
+rounds, queryCount, edgesDerived) into a bounded in-memory ring buffer (`InferenceRunLog`,
+cap 50). `GET /inference/runs` + a dashboard **Inference tab** (engine dropdown, run button,
+comparison table + Chart.js bar). R2 (Maven+SemVer ranges) feeds R1; scoped import = naive R1
+only. Full `clean check` green (81 tests). Working tree: untracked `tools/`.
+Last activity: 2026-06-12 — slice 4.3: ClosureStrategy + naive/semi-naive/native, RunMetrics +
+bounded run log, recompute?engine= + /runs, Inference tab (d77d122..f601b20)
 
-Progress: [█████████░] ~80%
+Progress: [█████████░] ~85%
 
 ## Reconciliation (2026-06-11)
 
@@ -121,11 +124,11 @@ ROADMAP.md progress table is also stale (shows phases 2/3/5 "Not started") — u
 
 ### Pending Todos (ordered roadmap — see ROADMAP.md)
 
-- **Slice 4.3 (next):** pluggable engine strategies (eager / incremental / lazy-query-time;
-  naive vs semi-naive) over R1+R2, `InferenceRun` metrics (time/passes/edges/storage), UI
-  switch + comparison view. R1's recursive form makes naive-vs-semi-naive a real comparison;
-  the native `DEPENDS_ON*` path-match returns here as the fast baseline strategy.
-- **Slice 4.4:** embedding engine — severity imputation (above) + accuracy eval.
+- **Slice 4.4 (next):** embedding engine — severity imputation (above) + accuracy eval. Adds
+  a 4th switchable engine (latent `r_𝕖`) alongside the 3 logical ones. Design not yet started.
+  Note: 4.3's `ClosureStrategy` / `RunMetrics` / `InferenceRunLog` are the slots it plugs into,
+  but severity imputation is a different *kind* of output (`predictedSeverity`, not
+  `TRANSITIVELY_AFFECTED`) — the strategy/metrics abstraction may need a small generalisation.
 - **Phase 6:** evaluation + ~6-page portfolio (comparison tables/charts: speed·storage·
   accuracy; course vocabulary).
 - **Optional 4.2b:** R3 alias merge (`SAME_AS`), R4 withdrawn retraction → stratified
@@ -148,21 +151,24 @@ ROADMAP.md progress table is also stale (shows phases 2/3/5 "Not started") — u
 
 - Spring Boot/Modulith on RC builds — move to GA when released (drop the Spring milestone
   repo in `settings.gradle.kts`).
-- Naive fixpoint re-applies rules each round (re-scans) — intentional baseline for the 4.3
-  comparison; semi-naive (delta-driven) is a 4.3 strategy. R2's `r2Candidates()` full-graph
-  scan runs only on `recomputeAll` (gated off scoped imports).
+- Naive fixpoint re-applies rules each round (re-scans) — intentional baseline; semi-naive
+  (delta frontier) + native (`DEPENDS_ON*`) are the faster strategies it's benchmarked against.
+  R2's `r2Candidates()` full-graph scan runs only on `recomputeAll` (gated off scoped imports).
+- Engine metrics are in-memory only (bounded ring buffer, lost on restart) — generate the
+  portfolio comparison table in one benchmarking session. Neo4j persistence is a trivial add.
+- Minor (slice 4.3, non-blocking): unknown `?engine=` → 409 (`BusinessRuleException`); 400
+  would be more apt for a bad query param. Left as-is.
 
 ## Session Continuity
 
-Last session: 2026-06-12 — Phase 4 **slice 4.2** shipped via subagent-driven development:
-version comparators (SemVer + Maven), OSV range evaluator (R2 built-in predicate), recursive
-R1 rules (base + step), R2 range resolution, stratified naive-fixpoint engine. Full
-`clean check` green. Merged to main (fast-forward, d76e623..5df2228). Earlier same day:
-slice 4.1 (27a135b..8fa7f20), severity badge colours (medium=yellow/high=orange/distinct
-UNKNOWN), architecture diagrams (`docs/ARCHITECTURE-DIAGRAMS.md`), three bugfixes
-(route params, graph-wipe tx memory, H2 AUTO_SERVER lock). Design done this session for the
-engine-as-pluggable-benchmarkable-heart + embedding severity imputation (course-grounded vs
-TU Wien KG slides).
-Stopped at: 5df2228. Working tree: untracked `tools/` only.
-Resume file: None — next is **slice 4.3** (pluggable engine strategies + metrics + UI switch).
-Specs/plans for 4.3 not yet written.
+Last session: 2026-06-12 — Phase 4 **slice 4.3** (pluggable benchmarkable engines) shipped via
+subagent-driven development: `ClosureStrategy` + naive/semi-naive/native, `RunMetrics` +
+bounded `InferenceRunLog`, `recompute?engine=` + `GET /runs`, dashboard Inference tab.
+Equivalence proven (3 engines, identical exposure). Full `clean check` green (81 tests). Merged
+to main (fast-forward, d77d122..f601b20). Same day earlier: slices 4.1 + 4.2, severity badge
+colours, architecture diagrams, three bugfixes. Extensive design this session (engine-as-heart,
+Datalog realization = Cypher-only, 3-engine comparison, embedding severity imputation) grounded
+against the TU Wien KG course slides (Parts 2/3/4).
+Stopped at: f601b20. Working tree: untracked `tools/` only.
+Resume file: None — next is **slice 4.4** (embedding severity-imputation engine). Design not
+yet started; spec/plan not written.

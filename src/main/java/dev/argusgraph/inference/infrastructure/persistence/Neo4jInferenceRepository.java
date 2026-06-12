@@ -74,6 +74,46 @@ class Neo4jInferenceRepository implements InferenceRepository {
 			RETURN count(t2) AS created
 			""";
 
+	private static final String WRITE_R1_NATIVE = """
+			MATCH (v:Vulnerability)-[:AFFECTS]->(target:PackageVersion)
+			MATCH (source:PackageVersion)-[:DEPENDS_ON*1..]->(target)
+			WHERE $sourcePurls IS NULL OR source.purl IN $sourcePurls
+			WITH v, source, min(length(shortestPath((source)-[:DEPENDS_ON*1..]->(target)))) AS depth
+			MERGE (v)-[t:TRANSITIVELY_AFFECTED]->(source)
+			  ON CREATE SET t.depth = depth, t.inferredBy = 'R1', t.ruleVersion = 2,
+			                t.derivedAt = datetime(), t._new = true
+			  ON MATCH  SET t.depth = CASE WHEN depth < t.depth THEN depth ELSE t.depth END
+			WITH t WHERE coalesce(t._new, false) = true
+			REMOVE t._new
+			RETURN count(t) AS created
+			""";
+
+	private static final String WRITE_R1_BASE_FRONTIER = """
+			MATCH (v:Vulnerability)-[:AFFECTS]->(target:PackageVersion)
+			MATCH (source:PackageVersion)-[:DEPENDS_ON]->(target)
+			WHERE $sourcePurls IS NULL OR source.purl IN $sourcePurls
+			MERGE (v)-[t:TRANSITIVELY_AFFECTED]->(source)
+			  ON CREATE SET t.depth = 1, t.round = 0, t.inferredBy = 'R1', t.ruleVersion = 2,
+			                t.derivedAt = datetime(), t._new = true
+			WITH t WHERE coalesce(t._new, false) = true
+			REMOVE t._new
+			RETURN count(t) AS created
+			""";
+
+	private static final String WRITE_R1_STEP_DELTA = """
+			MATCH (v:Vulnerability)-[t:TRANSITIVELY_AFFECTED {round: $prevRound}]->(mid:PackageVersion)
+			MATCH (source:PackageVersion)-[:DEPENDS_ON]->(mid)
+			WHERE $sourcePurls IS NULL OR source.purl IN $sourcePurls
+			WITH v, source, min(t.depth) + 1 AS depth, $prevRound + 1 AS nextRound
+			MERGE (v)-[t2:TRANSITIVELY_AFFECTED]->(source)
+			  ON CREATE SET t2.depth = depth, t2.round = nextRound, t2.inferredBy = 'R1',
+			                t2.ruleVersion = 2, t2.derivedAt = datetime(), t2._new = true
+			  ON MATCH  SET t2.depth = CASE WHEN depth < t2.depth THEN depth ELSE t2.depth END
+			WITH t2 WHERE coalesce(t2._new, false) = true
+			REMOVE t2._new
+			RETURN count(t2) AS created
+			""";
+
 	private static final String DELETE_TRANSITIVE = """
 			MATCH (:Vulnerability)-[t:TRANSITIVELY_AFFECTED]->(:PackageVersion)
 			DELETE t RETURN count(t) AS deleted
@@ -99,6 +139,24 @@ class Neo4jInferenceRepository implements InferenceRepository {
 	@Override
 	public long writeR1Step(Collection<String> sourcePurls) {
 		return run(WRITE_R1_STEP, sourcePurls);
+	}
+
+	@Override
+	public long writeR1Native(Collection<String> sourcePurls) {
+		return run(WRITE_R1_NATIVE, sourcePurls);
+	}
+
+	@Override
+	public long writeR1BaseFrontier(Collection<String> sourcePurls) {
+		return run(WRITE_R1_BASE_FRONTIER, sourcePurls);
+	}
+
+	@Override
+	public long writeR1StepDelta(Collection<String> sourcePurls, int prevRound) {
+		Map<String, Object> params = new HashMap<>();
+		params.put("sourcePurls", sourcePurls == null ? null : List.copyOf(sourcePurls));
+		params.put("prevRound", prevRound);
+		return this.neo4j.query(WRITE_R1_STEP_DELTA).bindAll(params).fetchAs(Long.class).one().orElse(0L);
 	}
 
 	@Override

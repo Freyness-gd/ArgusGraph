@@ -14,6 +14,15 @@ public interface InferenceRepository {
 	/** R1 step: TRANSITIVELY_AFFECTED(v,mid,d) ∧ DEPENDS_ON(source,mid) ⇒ depth d+1. Returns created this round. */
 	long writeR1Step(Collection<String> sourcePurls);
 
+	/** Native closure: materialise TRANSITIVELY_AFFECTED in one DEPENDS_ON* path-match query. Returns created. */
+	long writeR1Native(Collection<String> sourcePurls);
+
+	/** Semi-naive base: create the round-0 frontier (depth 1, round 0). Returns created. */
+	long writeR1BaseFrontier(Collection<String> sourcePurls);
+
+	/** Semi-naive step: extend only from edges created in {@code prevRound}; tag new edges round prevRound+1. Returns created. */
+	long writeR1StepDelta(Collection<String> sourcePurls, int prevRound);
+
 	/** Candidates for R2: every (vuln, package-version, ranges) reachable via AFFECTS_PACKAGE + HAS_VERSION. */
 	List<R2Candidate> r2Candidates();
 

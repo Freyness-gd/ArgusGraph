@@ -56,6 +56,9 @@ dependencies {
 	// Canonical purl (package URL) parsing — natural keys of the knowledge graph.
 	implementation("com.github.package-url:packageurl-java:${libs.versions.packageUrl.get()}")
 
+	// Maven ComparableVersion — authoritative version ordering for OSV ECOSYSTEM (Maven) ranges.
+	implementation("org.apache.maven:maven-artifact:3.9.9")
+
 	// CVSS vector parsing — derives numeric base scores from OSV severity vectors.
 	implementation("us.springett:cvss-calculator:${libs.versions.cvssCalculator.get()}")
 

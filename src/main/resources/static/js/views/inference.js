@@ -9,6 +9,9 @@ export const InferenceView = {
   engine: "naive",
   runs: [],
   running: false,
+  imputing: false,
+  evaluating: false,
+  eval: null,
 
   oninit() { this.load(); },
   load() {
@@ -24,6 +27,20 @@ export const InferenceView = {
       .then(() => this.load())
       .catch((err) => toast.error(err))
       .finally(() => { this.running = false; m.redraw(); });
+  },
+  impute() {
+    this.imputing = true;
+    post("/inference/impute-severity")
+      .then((r) => toast.ok(`Imputed severity for ${r.predicted} advisories in ${r.durationMs} ms`))
+      .catch((err) => toast.error(err))
+      .finally(() => { this.imputing = false; m.redraw(); });
+  },
+  evaluate() {
+    this.evaluating = true;
+    post("/inference/eval-severity")
+      .then((r) => { this.eval = r; toast.ok(`Eval: MAE ${r.mae.toFixed(2)}, label acc ${(r.labelAccuracy * 100).toFixed(0)}% (n=${r.n})`); })
+      .catch((err) => toast.error(err))
+      .finally(() => { this.evaluating = false; m.redraw(); });
   },
   view() {
     return [
@@ -53,6 +70,23 @@ export const InferenceView = {
           },
           options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
         })),
+      ]),
+      m(".card", [
+        m(".card-label", "Embedding — severity imputation (latent rₑ)"),
+        m("p.muted", "Predict CVSS severity for advisories with no score, from the "
+            + "similarity-weighted average of their nearest embedded neighbours. "
+            + "Evaluate measures leave-one-out accuracy over scored advisories."),
+        m(".filters", [
+          m("button", { disabled: this.imputing, onclick: () => this.impute() },
+            this.imputing ? "Imputing…" : "Impute severities"),
+          m("button", { disabled: this.evaluating, onclick: () => this.evaluate() },
+            this.evaluating ? "Evaluating…" : "Evaluate accuracy"),
+        ]),
+        this.eval && m(".badges", [
+          m("span.badge", `MAE ${this.eval.mae.toFixed(2)}`),
+          m("span.badge", `Label acc ${(this.eval.labelAccuracy * 100).toFixed(0)}%`),
+          m("span.badge", `n=${this.eval.n}`),
+        ]),
       ]),
       m(".card", [
         m(".card-label", "Recent runs"),

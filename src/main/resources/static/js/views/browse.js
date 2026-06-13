@@ -1,5 +1,6 @@
 import { get } from "../api.js";
 import { toast } from "../toast.js";
+import { debounce } from "../utils.js";
 
 const SEVERITIES = ["", "CRITICAL", "HIGH", "MEDIUM", "LOW", "NONE"];
 
@@ -13,6 +14,7 @@ export const BrowseView = {
   loading: false,
 
   oninit() {
+    this.debouncedSearch = debounce(() => this.load(0), 250);
     this.load(0);
   },
   load(page) {
@@ -34,7 +36,7 @@ export const BrowseView = {
         m("input", {
           placeholder: "search id / summary…",
           value: this.q,
-          oninput: (e) => { this.q = e.target.value; },
+          oninput: (e) => { this.q = e.target.value; this.debouncedSearch(); },
           onkeydown: (e) => { if (e.key === "Enter") this.load(0); },
         }),
         m("select", {

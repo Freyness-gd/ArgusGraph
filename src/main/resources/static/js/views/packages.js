@@ -59,6 +59,12 @@ export const PackagesView = {
     this.detail = null;
     this.detailLoading = false;
     this.expanded = {};
+    this._openedFor = null;
+    // Drop the ?purl param so the URL matches the list view. The route resolves to
+    // this same component, so Mithril does not remount and oninit/load() will not
+    // re-run — reload the list explicitly so the param-less view shows populated.
+    this.load(0);
+    m.route.set("/packages");
   },
 
   toggleVersion(purl) {

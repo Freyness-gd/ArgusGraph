@@ -184,3 +184,12 @@ a { color: var(--accent); }
 /* ── Charts ── */
 .chart-box { position: relative; height: 260px; }
 .chart-box.donut { height: 220px; }
+
+/* ── Exposure chain graph ── */
+.exposure-graph { width: 100%; overflow-x: auto; margin-bottom: 12px; }
+.eg-node { fill: var(--panel); stroke: var(--border); }
+.eg-vuln { fill: #2d1418; stroke: var(--sev-critical); }
+.eg-label { fill: var(--text-bright); font: 11px var(--mono); }
+.eg-edge { stroke: var(--muted); stroke-width: 1.5; }
+.eg-edge-label, .eg-affects-label { fill: var(--muted); font: 9px sans-serif; }
+.eg-affects { stroke: var(--sev-critical); stroke-width: 1.5; }

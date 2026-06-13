@@ -5,6 +5,7 @@ import { PackagesView } from "./views/packages.js";
 import { JobsView } from "./views/jobs.js";
 import { ProjectsView, ProjectDetailView } from "./views/projects.js";
 import { InferenceView } from "./views/inference.js";
+import { DerivedView } from "./views/derived.js";
 
 const NAV = [
   { route: "/stats", label: "Stats" },
@@ -13,6 +14,7 @@ const NAV = [
   { route: "/jobs", label: "Jobs" },
   { route: "/projects", label: "Projects" },
   { route: "/inference", label: "Inference" },
+  { route: "/derived", label: "Derived" },
 ];
 
 const Layout = {
@@ -45,4 +47,5 @@ m.route(document.body, "/stats", {
   "/projects": wrap(ProjectsView),
   "/projects/:id": wrap(ProjectDetailView),
   "/inference": wrap(InferenceView),
+  "/derived": wrap(DerivedView),
 });

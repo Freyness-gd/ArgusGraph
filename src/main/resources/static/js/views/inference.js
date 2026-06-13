@@ -14,6 +14,8 @@ export const InferenceView = {
   imputing: false,
   evaluating: false,
   eval: null,
+  expandedRule: null,
+  ruleOutputs: null,
 
   oninit() { this.load(); },
   load() {
@@ -45,7 +47,10 @@ export const InferenceView = {
   runRules() {
     this.runningRules = true;
     post("/inference/run-rules")
-      .then((r) => toast.ok(`rules: ${r.durationMs} ms · ${r.rounds} rounds · ${r.queryCount} queries · ${r.edgesWritten} edges`))
+      .then((r) => {
+        toast.ok(`rules: ${r.durationMs} ms · ${r.rounds} rounds · ${r.queryCount} queries · ${r.edgesWritten} edges`);
+        this.ruleOutputs = r.ruleOutputs;
+      })
       .then(() => this.load())
       .catch((err) => toast.error(err))
       .finally(() => { this.runningRules = false; m.redraw(); });
@@ -92,17 +97,37 @@ export const InferenceView = {
             + "reorder with the arrows, then Run rules to rebuild derived edges in this order."),
         this.rules.length > 0 && m("table", [
           m("thead", m("tr", ["On", "Rule", "Stratum", "Recursive", "Order"].map((h) => m("th", h)))),
-          m("tbody", this.rules.map((r, i) => m("tr", [
-            m("td", m("input", { type: "checkbox", checked: r.enabled,
-              onchange: (e) => this.toggleRule(r.name, e.target.checked) })),
-            m("td", r.name),
-            m("td", r.stratum),
-            m("td", r.recursive ? "yes" : "no"),
-            m("td", [
-              m("button", { disabled: i === 0, onclick: () => this.moveRule(i, -1) }, "▲"),
-              m("button", { disabled: i === this.rules.length - 1, onclick: () => this.moveRule(i, 1) }, "▼"),
+          m("tbody", this.rules.map((r, i) => [
+            m("tr", [
+              m("td", m("input", { type: "checkbox", checked: r.enabled,
+                onchange: (e) => this.toggleRule(r.name, e.target.checked) })),
+              m("td", { class: "clickable", onclick: () => { this.expandedRule = this.expandedRule === r.name ? null : r.name; } }, [
+                r.name, " ", m("span.muted", this.expandedRule === r.name ? "▼" : "▶"),
+              ]),
+              m("td", r.stratum),
+              m("td", r.recursive ? "yes" : "no"),
+              m("td", [
+                m("button", { disabled: i === 0, onclick: () => this.moveRule(i, -1) }, "▲"),
+                m("button", { disabled: i === this.rules.length - 1, onclick: () => this.moveRule(i, 1) }, "▼"),
+              ]),
             ]),
-          ]))),
+            this.expandedRule === r.name && m("tr", m("td", { colspan: 5 },
+              m(".version-panel", [
+                m("p.muted", r.description),
+                m("pre.mono", r.cypher),
+              ])
+            )),
+          ])),
+        ]),
+        this.ruleOutputs && this.ruleOutputs.length > 0 && m(".run-output", [
+          m("p.muted", "Run output"),
+          m("table", [
+            m("thead", m("tr", ["Rule", "Edges created"].map((h) => m("th", h)))),
+            m("tbody", this.ruleOutputs.map((o) => m("tr", [
+              m("td", o.rule),
+              m("td", o.edgesCreated),
+            ]))),
+          ]),
         ]),
         m(".filters", [
           m("button", { disabled: this.runningRules, onclick: () => this.runRules() },

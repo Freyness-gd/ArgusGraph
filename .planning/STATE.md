@@ -11,8 +11,10 @@ recursive R1 + fixpoint), 4.3 (pluggable benchmarkable engines), 4.4 (embedding 
 imputation — latent `r_𝕖`), AND the pluggable rule-pipeline slice all shipped. The engine is
 the project "heart" — a logical/Datalog-style KG reasoner (logical `r_𝕂`) with 3 switchable
 closure strategies, a runtime-editable ordered rule pipeline, AND a latent embedding-kNN
-severity engine — all surfaced in the UI. **Now in progress:** a UI/graph-browsing milestone (P1–P5) — make the
-inferred knowledge browsable + the app cleaner — then **Phase 6** (evaluation + ~6-page LaTeX portfolio).
+severity engine — all surfaced in the UI. **UI/graph-browsing milestone (P1–P5) COMPLETE** — inferred knowledge is now
+browsable: Packages browser, Derived-knowledge browser with a dependency-chain SVG graph, a
+package-version neighbourhood mini-graph, rule description/Cypher + per-rule outputs, debounced search,
+and cross-linking (click any purl/CVE to navigate). Next: **Phase 6** (evaluation + ~6-page LaTeX portfolio).
 
 ## Current Position
 
@@ -35,13 +37,13 @@ comparison table/Chart.js bar, a latent severity-imputation card, and a Rules ca
 + debounce) merged: `GET /graph/packages` (paged list + `/packages/detail`, CVE summaries on version
 vuln-refs), `GET /inference/transitive` (HTTP read of derived edges), `js/utils.js` `debounce(fn,250)`
 + live Browse search. Full `clean check` green (103 tests). Working tree: untracked `tools/`.
-Last activity: 2026-06-13 — milestone P4 (browse derived knowledge) merged + pushed: `GET /inference/
-derived` (paged `TRANSITIVELY_AFFECTED` edges) + `GET /inference/chain` (shortest DEPENDS_ON path
-explaining an exposure, bounded `*1..20`); new **Derived** tab — exposure list (master-detail) +
-dependency-**chain rendered as a mini SVG graph** (vendored-free) + text fallback. Prior same day: P3
-rule transparency, P2 Packages, P1 read API + debounce, slice 4.4, pluggable rule pipeline.
+Last activity: 2026-06-13 — milestone P5 (graph navigation polish) merged + pushed, completing the
+P1–P5 UI milestone: `GET /graph/neighbourhood` (deps/dependents/vulns/transitive, per-group aggregated);
+a reusable **neighbourhood mini-graph** on the Packages version-detail; **cross-linking** (`nav.js` —
+click any purl→Packages, any CVE→Browse; query-param deep-linking). Prior same day: P4 derived browser +
+chain graph, P3 rule transparency, P2 Packages, P1 read API + debounce, slice 4.4, pluggable rule pipeline.
 
-Progress: [█████████░] ~90%
+Progress: [█████████░] ~93%
 
 ## Reconciliation (2026-06-11)
 
@@ -183,9 +185,11 @@ endpoints, integration test (disabling R2 zeroes exposure), Rules UI card. Bruno
 folder added; STATE/ROADMAP updated. Full `clean check` green (99 tests). Both slices merged to
 main (fast-forward).
 Stopped at: rule-pipeline merge on main. Working tree: untracked `tools/` only.
-Resume file: `docs/superpowers/plans/2026-06-13-p4-derived-browser.md` (P4, done). Next: **P5 — graph
-navigation polish** (cross-link entities clickable: vuln↔package↔version↔dependents↔transitive↔project;
-neighbourhood mini-graph reuse on more entities; richer Projects exposure view). New views (Packages,
-Derived) + the SVG graph are NOT yet visually verified in a browser — confirm rendering during P5 or
-rely on the user's Claude-App review. Then **Phase 6** LaTeX report. **Push to origin/main after every
-phase** (user away, reviews via GitHub + Claude App).
+Resume file: `docs/superpowers/plans/2026-06-13-p5-graph-nav.md` (P5, done — milestone P1–P5 COMPLETE).
+Next: **Phase 6 — evaluation + ~6-page LaTeX portfolio** in `docs/` (templates:
+`KG - Portfolio - Pro-Forma-v3.docx` + `KG - Portfolio - Example-Structure.pdf` in ~/Downloads). Course
+vocabulary (ground/intensional/derived extensional; `r:D→D`; `r_𝕂` vs `r_𝕖`; recursion/fixpoint/
+stratification/tractability); comparison tables — logical engines (time·rounds·queryCount) + latent (MAE·
+label-acc). NOTE: the new UI (Packages, Derived, neighbourhood + chain SVG graphs, cross-linking) passed
+`clean check` (106 tests, all endpoints integration-tested) but is **NOT yet browser-verified visually** —
+the user reviews via the Claude App. **Push to origin/main after every phase.**

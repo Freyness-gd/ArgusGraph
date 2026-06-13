@@ -15,6 +15,8 @@ export const BrowseView = {
 
   oninit() {
     this.debouncedSearch = debounce(() => this.load(0), 250);
+    const q = m.route.param("q");
+    if (q) this.q = q;
     this.load(0);
   },
   load(page) {

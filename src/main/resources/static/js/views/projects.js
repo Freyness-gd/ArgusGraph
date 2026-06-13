@@ -1,6 +1,7 @@
 import { get, post, del } from "../api.js";
 import { toast } from "../toast.js";
 import { ChartCanvas, SEVERITY_COLORS } from "../charts.js";
+import { pkgLink, vulnLink } from "../nav.js";
 
 export const ProjectsView = {
   projects: [],
@@ -159,11 +160,11 @@ export const ProjectDetailView = {
           : m("table", [
               m("thead", m("tr", [m("th", "Dependency"), m("th", "Vulnerabilities")])),
               m("tbody", affected.map((dep) => m("tr", [
-                m("td.mono", dep.purl),
+                m("td.mono", pkgLink(dep.purl)),
                 m("td", dep.vulnerabilities.map((v) => m("p", [
                   m("span.badge", { class: "sev-" + (v.severity || "none").toLowerCase() },
                       v.severity || "NONE"),
-                  m("span.mono", ` ${v.id} `),
+                  m("span.mono", [" ", vulnLink(v.id), " "]),
                   m("span.muted", v.cvssScore == null ? "" : `(${v.cvssScore.toFixed(1)}) `),
                   m("span.muted", v.summary || ""),
                 ]))),
@@ -178,10 +179,10 @@ export const ProjectDetailView = {
           : m("table", [
               m("thead", m("tr", [m("th", "Dependency"), m("th", "Exposed to")])),
               m("tbody", transitivelyExposed.map((dep) => m("tr", [
-                m("td.mono", dep.purl),
+                m("td.mono", pkgLink(dep.purl)),
                 m("td", dep.transitive.map((v) => m("p", [
                   m("span.badge", { class: "sev-" + (v.severity || "none").toLowerCase() }, v.severity || "NONE"),
-                  m("span.mono", ` ${v.id} `),
+                  m("span.mono", [" ", vulnLink(v.id), " "]),
                   m("span.muted", `depth ${v.depth} `),
                   m("span.muted", v.summary || ""),
                 ]))),
@@ -194,7 +195,7 @@ export const ProjectDetailView = {
         unknown.length > 0 && m("button",
           { onclick: () => { this.showUnknown = !this.showUnknown; } },
           this.showUnknown ? "Hide" : "Show"),
-        this.showUnknown && m("ul.mono", unknown.map((dep) => m("li", dep.purl))),
+        this.showUnknown && m("ul.mono", unknown.map((dep) => m("li", pkgLink(dep.purl)))),
       ]),
       m("p.muted", `${d.summary.clean} dependencies known to the graph with no matching vulnerabilities.`),
     ];

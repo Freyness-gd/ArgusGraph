@@ -193,3 +193,7 @@ a { color: var(--accent); }
 .eg-edge { stroke: var(--muted); stroke-width: 1.5; }
 .eg-edge-label, .eg-affects-label { fill: var(--muted); font: 9px sans-serif; }
 .eg-affects { stroke: var(--sev-critical); stroke-width: 1.5; }
+
+/* ── Cross-view navigation links ── */
+.link { color: var(--accent, #58a6ff); cursor: pointer; text-decoration: none; }
+.link:hover { text-decoration: underline; }

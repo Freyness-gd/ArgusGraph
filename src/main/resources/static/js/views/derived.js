@@ -2,6 +2,7 @@ import { get } from "../api.js";
 import { toast } from "../toast.js";
 import { debounce } from "../utils.js";
 import { exposureGraph } from "../graph.js";
+import { pkgLink, vulnLink } from "../nav.js";
 
 function sevBadge(severity) {
   const s = severity || "NONE";
@@ -59,9 +60,9 @@ export const DerivedView = {
       m("a.muted", { href: "#", onclick: (ev) => { ev.preventDefault(); this.back(); } }, "← derived"),
       m(".card", [
         m(".card-label", "Exposure"),
-        m("p.mono", e.vulnId),
+        m("p.mono", vulnLink(e.vulnId)),
         m("p", [sevBadge(e.severity), " ", m("span.muted", e.summary || "")]),
-        m("p.muted.mono", `exposed: ${e.exposedPurl} · depth ${e.depth} · rule ${e.inferredBy}`),
+        m("p.muted.mono", ["exposed: ", pkgLink(e.exposedPurl), ` · depth ${e.depth} · rule ${e.inferredBy}`]),
       ]),
       m(".card", [
         m(".card-label", "Exposure chain"),
@@ -75,9 +76,9 @@ export const DerivedView = {
                 severity: e.severity,
               }),
               this.chain && this.chain.path && this.chain.path.length > 0
-                ? m("ul.mono", this.chain.path.map((p) => m("li", p)))
+                ? m("ul.mono", this.chain.path.map((p) => m("li", pkgLink(p))))
                 : null,
-              affectedPurl ? m("p.muted.mono", `affects: ${affectedPurl}`) : null,
+              affectedPurl ? m("p.muted.mono", ["affects: ", pkgLink(affectedPurl)]) : null,
             ],
       ]),
     ];
@@ -104,10 +105,10 @@ export const DerivedView = {
         m("tbody", this.items.length === 0
           ? m("tr", m("td.muted", { colspan: 6 }, "No derived edges found."))
           : this.items.map((e) => m("tr.clickable", { onclick: () => this.open(e) }, [
-              m("td.mono", e.vulnId),
+              m("td.mono", vulnLink(e.vulnId)),
               m("td", sevBadge(e.severity)),
               m("td", e.cvssScore == null ? "—" : e.cvssScore.toFixed(1)),
-              m("td.mono", e.exposedPurl),
+              m("td.mono", pkgLink(e.exposedPurl)),
               m("td", e.depth),
               m("td.muted", e.inferredBy),
             ]))),

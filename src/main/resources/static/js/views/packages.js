@@ -1,6 +1,7 @@
 import { get } from "../api.js";
 import { toast } from "../toast.js";
 import { debounce } from "../utils.js";
+import { pkgLink, vulnLink } from "../nav.js";
 
 function sevBadge(severity) {
   const s = severity || "NONE";
@@ -20,7 +21,16 @@ export const PackagesView = {
 
   oninit() {
     this.debouncedSearch = debounce(() => this.load(0), 250);
-    this.load(0);
+    const purl = m.route.param("purl");
+    if (purl) { this.open(purl); } else { this.load(0); }
+  },
+
+  onupdate() {
+    const purl = m.route.param("purl");
+    if (purl && purl !== this._openedFor) {
+      this._openedFor = purl;
+      this.open(purl);
+    }
   },
 
   load(page) {
@@ -35,6 +45,7 @@ export const PackagesView = {
   },
 
   open(packagePurl) {
+    this._openedFor = packagePurl;
     this.detailLoading = true;
     this.detail = null;
     this.expanded = {};
@@ -75,7 +86,7 @@ export const PackagesView = {
         : m("table", [
             m("thead", m("tr", [m("th", "ID"), m("th", "Severity"), m("th", "CVSS"), m("th", "Summary")])),
             m("tbody", v.vulnerabilities.map((vuln) => m("tr", [
-              m("td.mono", vuln.id),
+              m("td.mono", vulnLink(vuln.id)),
               m("td", sevBadge(vuln.severity)),
               m("td", vuln.cvssScore == null ? "—" : vuln.cvssScore.toFixed(1)),
               m("td.muted", vuln.summary || ""),
@@ -86,7 +97,7 @@ export const PackagesView = {
         ? m("p.muted", "Loading…")
         : x.deps.length === 0
           ? m("p.muted", "None recorded.")
-          : m("ul.mono", x.deps.map((d) => m("li", `${d.purl}${d.scope ? " (" + d.scope + ")" : ""}`))),
+          : m("ul.mono", x.deps.map((d) => m("li", [pkgLink(d.purl), d.scope ? ` (${d.scope})` : ""]))),
       m(".card-label", "Transitive exposure"),
       x.loading
         ? m("p.muted", "Loading…")
@@ -95,7 +106,7 @@ export const PackagesView = {
           : m("table", [
               m("thead", m("tr", [m("th", "ID"), m("th", "Severity"), m("th", "CVSS"), m("th", "Depth")])),
               m("tbody", x.transitive.map((t) => m("tr", [
-                m("td.mono", t.id),
+                m("td.mono", vulnLink(t.id)),
                 m("td", sevBadge(t.severity)),
                 m("td", t.cvssScore == null ? "—" : t.cvssScore.toFixed(1)),
                 m("td", t.depth),

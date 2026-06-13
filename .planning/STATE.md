@@ -35,10 +35,11 @@ comparison table/Chart.js bar, a latent severity-imputation card, and a Rules ca
 + debounce) merged: `GET /graph/packages` (paged list + `/packages/detail`, CVE summaries on version
 vuln-refs), `GET /inference/transitive` (HTTP read of derived edges), `js/utils.js` `debounce(fn,250)`
 + live Browse search. Full `clean check` green (103 tests). Working tree: untracked `tools/`.
-Last activity: 2026-06-13 — milestone P3 (rule transparency + outputs) merged + pushed: rules expose
-`description()`+`cypher()` (mirrors repo queries); `run-rules` reports per-rule edge output; Inference
-tab shows expandable rule description/Cypher + a Run-output table. Prior same day: P2 Packages, P1
-read API + debounce, slice 4.4, pluggable rule pipeline.
+Last activity: 2026-06-13 — milestone P4 (browse derived knowledge) merged + pushed: `GET /inference/
+derived` (paged `TRANSITIVELY_AFFECTED` edges) + `GET /inference/chain` (shortest DEPENDS_ON path
+explaining an exposure, bounded `*1..20`); new **Derived** tab — exposure list (master-detail) +
+dependency-**chain rendered as a mini SVG graph** (vendored-free) + text fallback. Prior same day: P3
+rule transparency, P2 Packages, P1 read API + debounce, slice 4.4, pluggable rule pipeline.
 
 Progress: [█████████░] ~90%
 
@@ -182,9 +183,9 @@ endpoints, integration test (disabling R2 zeroes exposure), Rules UI card. Bruno
 folder added; STATE/ROADMAP updated. Full `clean check` green (99 tests). Both slices merged to
 main (fast-forward).
 Stopped at: rule-pipeline merge on main. Working tree: untracked `tools/` only.
-Resume file: `docs/superpowers/plans/2026-06-13-p3-rule-transparency.md` (P3, done). Next: **P4 —
-Browse derived knowledge** (global Inference panel over all `TRANSITIVELY_AFFECTED` edges: vuln→exposed
-pkg, depth, by rule; filter/search; drill into the exposure chain + a mini SVG neighbourhood graph).
-Needs a new read: derived-edges list + a vuln→exposed reverse query. Milestone P1–P5 = browsable
-inferred knowledge + cleaner app; then **Phase 6** LaTeX report. **Push to origin/main after every
+Resume file: `docs/superpowers/plans/2026-06-13-p4-derived-browser.md` (P4, done). Next: **P5 — graph
+navigation polish** (cross-link entities clickable: vuln↔package↔version↔dependents↔transitive↔project;
+neighbourhood mini-graph reuse on more entities; richer Projects exposure view). New views (Packages,
+Derived) + the SVG graph are NOT yet visually verified in a browser — confirm rendering during P5 or
+rely on the user's Claude-App review. Then **Phase 6** LaTeX report. **Push to origin/main after every
 phase** (user away, reviews via GitHub + Claude App).

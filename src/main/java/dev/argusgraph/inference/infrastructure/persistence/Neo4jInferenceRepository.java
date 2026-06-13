@@ -147,9 +147,10 @@ class Neo4jInferenceRepository implements InferenceRepository {
 			RETURN count(t) AS total
 			""";
 
+	// bounded depth: a user-facing read; real chains are shallow.
 	private static final String EXPOSURE_CHAIN = """
 			MATCH (v:Vulnerability {id: $vulnId})-[:AFFECTS]->(target:PackageVersion)
-			MATCH p = shortestPath((source:PackageVersion {purl: $purl})-[:DEPENDS_ON*1..]->(target))
+			MATCH p = shortestPath((source:PackageVersion {purl: $purl})-[:DEPENDS_ON*1..20]->(target))
 			RETURN [n IN nodes(p) | n.purl] AS path, target.purl AS affectedPurl
 			ORDER BY length(p) ASC
 			LIMIT 1

@@ -40,6 +40,13 @@ public class GraphController {
 		return PackageVersionResponse.from(this.graph.getPackageVersion(purl));
 	}
 
+	@GetMapping("/neighbourhood")
+	@Operation(summary = "A package-version's direct neighbourhood: dependencies, dependents, and vulnerabilities")
+	public NeighbourhoodResponse getNeighbourhood(
+			@RequestParam @NotBlank(message = "purl must not be blank") String purl) {
+		return NeighbourhoodResponse.from(this.graph.getNeighbourhood(purl));
+	}
+
 	@GetMapping("/packages")
 	@Operation(summary = "Page through packages, most-affected first, with an optional text filter")
 	public PackagePageResponse listPackages(@RequestParam(defaultValue = "0") int page,

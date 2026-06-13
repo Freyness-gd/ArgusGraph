@@ -25,6 +25,7 @@ import dev.argusgraph.graph.PackageVersion;
 import dev.argusgraph.graph.Vulnerability;
 import dev.argusgraph.graph.application.GraphRepository;
 import dev.argusgraph.graph.application.GraphStats;
+import dev.argusgraph.graph.application.Neighbourhood;
 import dev.argusgraph.graph.application.PackageDetails;
 import dev.argusgraph.graph.application.PackageHits;
 import dev.argusgraph.graph.application.PackagePage;
@@ -120,6 +121,20 @@ class Neo4jGraphRepository implements GraphRepository {
 			       [x IN collect(DISTINCT {id: vuln.id, severity: vuln.severity, cvssScore: vuln.cvssScore,
 			                               summary: vuln.summary})
 			        WHERE x.id IS NOT NULL] AS vulnerabilities
+			""";
+
+	private static final String NEIGHBOURHOOD = """
+			MATCH (pv:PackageVersion {purl: $purl})
+			OPTIONAL MATCH (pv)-[:DEPENDS_ON]->(dep:PackageVersion)
+			OPTIONAL MATCH (dependent:PackageVersion)-[:DEPENDS_ON]->(pv)
+			OPTIONAL MATCH (av:Vulnerability)-[:AFFECTS]->(pv)
+			OPTIONAL MATCH (tv:Vulnerability)-[t:TRANSITIVELY_AFFECTED]->(pv)
+			RETURN pv.purl AS center, pv.version AS version,
+			  [x IN collect(DISTINCT dep.purl) WHERE x IS NOT NULL] AS dependencies,
+			  [x IN collect(DISTINCT dependent.purl) WHERE x IS NOT NULL] AS dependents,
+			  [x IN collect(DISTINCT {id: av.id, severity: av.severity}) WHERE x.id IS NOT NULL] AS vulnerabilities,
+			  [x IN collect(DISTINCT {id: tv.id, severity: tv.severity, depth: t.depth})
+			   WHERE x.id IS NOT NULL] AS transitive
 			""";
 
 	private static final String FETCH_STATS = """
@@ -308,6 +323,11 @@ class Neo4jGraphRepository implements GraphRepository {
 	}
 
 	@Override
+	public Optional<Neighbourhood> findNeighbourhood(String purl) {
+		return this.neo4j.query(NEIGHBOURHOOD).bindAll(Map.of("purl", purl)).fetch().one().map(this::toNeighbourhood);
+	}
+
+	@Override
 	public GraphStats fetchStats() {
 		Map<String, Object> counts = this.neo4j.query(FETCH_STATS).fetch().one().orElseThrow();
 		Map<String, Long> bySeverity = new LinkedHashMap<>();
@@ -445,6 +465,21 @@ class Neo4jGraphRepository implements GraphRepository {
 				vulnerabilities.stream()
 					.map(v -> new PackageVersionDetails.AffectingVulnerability((String) v.get("id"),
 							(String) v.get("severity"), toDouble(v.get("cvssScore")), (String) v.get("summary")))
+					.toList());
+	}
+
+	@SuppressWarnings("unchecked")
+	private Neighbourhood toNeighbourhood(Map<String, Object> row) {
+		List<Map<String, Object>> vulnerabilities = (List<Map<String, Object>>) row.get("vulnerabilities");
+		List<Map<String, Object>> transitive = (List<Map<String, Object>>) row.get("transitive");
+		return new Neighbourhood((String) row.get("center"), (String) row.get("version"),
+				(List<String>) row.get("dependencies"), (List<String>) row.get("dependents"),
+				vulnerabilities.stream()
+					.map(v -> new Neighbourhood.VulnRef((String) v.get("id"), (String) v.get("severity")))
+					.toList(),
+				transitive.stream()
+					.map(t -> new Neighbourhood.TransitiveRef((String) t.get("id"), (String) t.get("severity"),
+							((Number) t.get("depth")).intValue()))
 					.toList());
 	}
 

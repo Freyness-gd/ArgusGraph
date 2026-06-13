@@ -48,6 +48,9 @@ public interface GraphRepository {
 	/** A package version with its direct dependencies and directly-affecting vulnerabilities. */
 	Optional<PackageVersionDetails> findPackageVersion(String purl);
 
+	/** A package version's direct neighbourhood: dependencies, dependents, and (direct + transitive) vulns. */
+	Optional<Neighbourhood> findNeighbourhood(String purl);
+
 	/** Whole-graph counts for the dashboard; vulnerabilities without a severity count as NONE. */
 	GraphStats fetchStats();
 

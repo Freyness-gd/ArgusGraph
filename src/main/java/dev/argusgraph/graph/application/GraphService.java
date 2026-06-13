@@ -105,6 +105,14 @@ public class GraphService implements GraphAPI {
 			.orElseThrow(() -> new ResourceNotFoundException(PackageVersion.class, versionKey));
 	}
 
+	/** A package version's direct neighbourhood: dependencies, dependents, and (direct + transitive) vulns. */
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
+	public Neighbourhood getNeighbourhood(String purl) {
+		String versionKey = Purl.parse(purl).versionKey();
+		return this.graph.findNeighbourhood(versionKey)
+			.orElseThrow(() -> new ResourceNotFoundException(PackageVersion.class, versionKey));
+	}
+
 	/** Whole-graph counts for the dashboard. */
 	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
 	public GraphStats getStats() {

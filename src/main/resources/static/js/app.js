@@ -1,7 +1,7 @@
 import { toast } from "./toast.js";
 import { StatsView } from "./views/stats.js";
 import { BrowseView } from "./views/browse.js";
-import { LookupView } from "./views/lookup.js";
+import { PackagesView } from "./views/packages.js";
 import { JobsView } from "./views/jobs.js";
 import { ProjectsView, ProjectDetailView } from "./views/projects.js";
 import { InferenceView } from "./views/inference.js";
@@ -9,7 +9,7 @@ import { InferenceView } from "./views/inference.js";
 const NAV = [
   { route: "/stats", label: "Stats" },
   { route: "/browse", label: "Browse" },
-  { route: "/lookup", label: "Lookup" },
+  { route: "/packages", label: "Packages" },
   { route: "/jobs", label: "Jobs" },
   { route: "/projects", label: "Projects" },
   { route: "/inference", label: "Inference" },
@@ -40,7 +40,7 @@ const wrap = (component) => ({ render: (vnode) => m(Layout, m(component, vnode.a
 m.route(document.body, "/stats", {
   "/stats": wrap(StatsView),
   "/browse": wrap(BrowseView),
-  "/lookup": wrap(LookupView),
+  "/packages": wrap(PackagesView),
   "/jobs": wrap(JobsView),
   "/projects": wrap(ProjectsView),
   "/projects/:id": wrap(ProjectDetailView),

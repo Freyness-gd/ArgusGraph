@@ -128,6 +128,12 @@ class RulePipelineIntegrationTest {
 		assertThat(rules).hasSize(3);
 		assertThat(rules).extracting(r -> r.get("name")).containsExactly("R2", "R1-base", "R1-step");
 		assertThat(rules).allSatisfy(r -> assertThat(r.get("enabled")).isEqualTo(true));
+
+		// Every rule now exposes a human description and the representative Cypher it materialises.
+		assertThat(rules).allSatisfy(r -> {
+			assertThat((String) r.get("description")).isNotBlank();
+			assertThat((String) r.get("cypher")).isNotBlank();
+		});
 	}
 
 	@Test
@@ -140,6 +146,29 @@ class RulePipelineIntegrationTest {
 
 		// R2 materialised AFFECTS, R1 derived the transitive hop: exposure now exists.
 		assertThat(transitiveCount()).isGreaterThan(0L);
+
+		// The run now reports a per-rule edge breakdown. R2 wrote ≥1 AFFECTS and an R1 rule wrote
+		// ≥1 TRANSITIVELY_AFFECTED for the seeded range-advisory exposure.
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> ruleOutputs = (List<Map<String, Object>>) run.getBody().get("ruleOutputs");
+		assertThat(ruleOutputs).isNotNull().isNotEmpty();
+
+		Map<String, Object> r2Output = ruleOutput(ruleOutputs, "R2");
+		assertThat(((Number) r2Output.get("edgesCreated")).longValue()).isGreaterThanOrEqualTo(1L);
+
+		Map<String, Object> r1Output = ruleOutputs.stream()
+			.filter(o -> "R1-base".equals(o.get("rule")) || "R1-step".equals(o.get("rule")))
+			.filter(o -> ((Number) o.get("edgesCreated")).longValue() >= 1L)
+			.findFirst()
+			.orElseThrow(() -> new AssertionError("No R1 rule (R1-base/R1-step) reported edgesCreated >= 1"));
+		assertThat(((Number) r1Output.get("edgesCreated")).longValue()).isGreaterThanOrEqualTo(1L);
+	}
+
+	private Map<String, Object> ruleOutput(List<Map<String, Object>> outputs, String rule) {
+		return outputs.stream()
+			.filter(o -> rule.equals(o.get("rule")))
+			.findFirst()
+			.orElseThrow(() -> new AssertionError("No ruleOutputs entry for rule: " + rule));
 	}
 
 	@Test

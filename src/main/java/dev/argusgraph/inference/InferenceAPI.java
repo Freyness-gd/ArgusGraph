@@ -44,11 +44,23 @@ public interface InferenceAPI {
 	 */
 	void reorderRules(List<String> orderedNames);
 
-	/** Full rebuild via the ordered rule pipeline (delete derived, then run enabled rules in order). */
-	RunResult runRules();
+	/**
+	 * Full rebuild via the ordered rule pipeline (delete derived, then run enabled rules in order).
+	 * Returns the aggregate run metrics plus the per-rule edge breakdown.
+	 */
+	RuleRunResult runRules();
 
 	/** A rule in the pipeline: identity, stratum/recursion metadata, and whether it currently runs. */
-	record RuleView(String name, int version, int stratum, boolean recursive, boolean enabled) {
+	record RuleView(String name, int version, int stratum, boolean recursive, boolean enabled, String description,
+			String cypher) {
+	}
+
+	/** Edges one rule created during a run. */
+	record RuleOutput(String rule, long edgesCreated) {
+	}
+
+	/** A rule-pipeline run: the aggregate metrics + the per-rule breakdown. */
+	record RuleRunResult(RunResult run, List<RuleOutput> ruleOutputs) {
 	}
 
 	/** Metrics for one recompute run. */

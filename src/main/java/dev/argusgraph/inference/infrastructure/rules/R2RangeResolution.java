@@ -18,6 +18,18 @@ import dev.argusgraph.inference.application.version.OsvRangeEvaluator;
 @Component
 public class R2RangeResolution implements InferenceRule {
 
+	// mirrors Neo4jInferenceRepository.WRITE_R2
+	private static final String CYPHER = """
+			UNWIND $hits AS hit
+			MATCH (v:Vulnerability {id: hit.vulnId})
+			MATCH (pv:PackageVersion {purl: hit.purl})
+			MERGE (v)-[a:AFFECTS]->(pv)
+			  ON CREATE SET a.inferredBy = 'R2', a.derivedAt = datetime(), a._new = true
+			WITH a WHERE coalesce(a._new, false) = true
+			REMOVE a._new
+			RETURN count(a) AS created
+			""";
+
 	private final InferenceRepository repository;
 
 	private final OsvRangeEvaluator evaluator = new OsvRangeEvaluator();
@@ -29,6 +41,17 @@ public class R2RangeResolution implements InferenceRule {
 	@Override
 	public String name() {
 		return "R2";
+	}
+
+	@Override
+	public String description() {
+		return "R2 — range resolution: evaluates each advisory's OSV version ranges (Maven/SemVer) in Java, "
+				+ "then materialises AFFECTS {inferredBy:'R2'} to the matching package versions.";
+	}
+
+	@Override
+	public String cypher() {
+		return CYPHER;
 	}
 
 	@Override

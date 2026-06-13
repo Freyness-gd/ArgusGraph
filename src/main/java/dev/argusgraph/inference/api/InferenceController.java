@@ -76,8 +76,8 @@ public class InferenceController {
 
 	@PostMapping("/run-rules")
 	@Operation(summary = "Rebuild derived edges by running the rule pipeline in its configured order")
-	public RunResponse runRules() {
-		return RunResponse.from(this.inference.runRules());
+	public RuleRunResponse runRules() {
+		return RuleRunResponse.from(this.inference.runRules());
 	}
 
 	/** Metrics of one recompute run. {@code edgesWritten} kept for back-compat. */
@@ -87,6 +87,25 @@ public class InferenceController {
 		static RunResponse from(InferenceAPI.RunResult r) {
 			return new RunResponse(r.engine(), r.edgesDerived(), r.durationMs(), r.rounds(), r.queryCount(),
 					r.timestamp());
+		}
+	}
+
+	/** Rule-pipeline run: run metrics (flat, like RunResponse) plus the per-rule edge breakdown. */
+	public record RuleRunResponse(String engine, long edgesWritten, long durationMs, int rounds,
+			long queryCount, long timestamp, List<RuleOutputResponse> ruleOutputs) {
+
+		static RuleRunResponse from(InferenceAPI.RuleRunResult r) {
+			return new RuleRunResponse(r.run().engine(), r.run().edgesDerived(), r.run().durationMs(),
+					r.run().rounds(), r.run().queryCount(), r.run().timestamp(),
+					r.ruleOutputs().stream().map(RuleOutputResponse::from).toList());
+		}
+	}
+
+	/** Edges one rule created in a run. */
+	public record RuleOutputResponse(String rule, long edgesCreated) {
+
+		static RuleOutputResponse from(InferenceAPI.RuleOutput o) {
+			return new RuleOutputResponse(o.rule(), o.edgesCreated());
 		}
 	}
 

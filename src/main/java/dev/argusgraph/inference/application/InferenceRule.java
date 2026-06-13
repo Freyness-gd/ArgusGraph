@@ -21,4 +21,10 @@ public interface InferenceRule {
 	/** One round over the scope; returns edges created this round. */
 	long apply(InferenceScope scope);
 
+	/** One-line human summary of what this rule derives. */
+	String description();
+
+	/** Representative Cypher this rule materialises (for UI transparency; mirrors the repo query). */
+	String cypher();
+
 }

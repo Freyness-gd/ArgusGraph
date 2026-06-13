@@ -1,5 +1,6 @@
 package dev.argusgraph.inference.application;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -12,6 +13,8 @@ import org.springframework.transaction.annotation.Transactional;
 import dev.argusgraph.inference.InferenceAPI;
 import dev.argusgraph.inference.InferenceAPI.EvalResult;
 import dev.argusgraph.inference.InferenceAPI.ImputeResult;
+import dev.argusgraph.inference.InferenceAPI.RuleOutput;
+import dev.argusgraph.inference.InferenceAPI.RuleRunResult;
 import dev.argusgraph.inference.InferenceAPI.RuleView;
 import dev.argusgraph.inference.application.embedding.SeverityImputation;
 import dev.argusgraph.inference.application.strategy.ClosureStrategy;
@@ -116,16 +119,17 @@ public class InferenceService implements InferenceAPI {
 
 	@Override
 	@Transactional(transactionManager = "neo4jTransactionManager")
-	public RunResult runRules() {
+	public RuleRunResult runRules() {
 		RunMetrics metrics = new RunMetrics("rules");
 		this.repository.deleteTransitive();
 		metrics.query();
 		this.repository.deleteR2Affects();
 		metrics.query();
-		metrics.derived(applyRules(InferenceScope.all(), metrics));
+		List<RuleOutput> outputs = new ArrayList<>();
+		metrics.derived(applyRules(InferenceScope.all(), metrics, outputs));
 		RunResult result = metrics.finish();
 		this.runLog.record(result);
-		return result;
+		return new RuleRunResult(result, outputs);
 	}
 
 	@Override
@@ -133,7 +137,7 @@ public class InferenceService implements InferenceAPI {
 		return this.ruleRegistry.entries()
 			.stream()
 			.map(e -> new RuleView(e.rule().name(), e.rule().version(), e.rule().stratum(), e.rule().recursive(),
-					e.enabled()))
+					e.enabled(), e.rule().description(), e.rule().cypher()))
 			.toList();
 	}
 
@@ -148,24 +152,29 @@ public class InferenceService implements InferenceAPI {
 	}
 
 	private long run(InferenceScope scope) {
-		return applyRules(scope, null);
+		return applyRules(scope, null, null);
 	}
 
 	/** Run each enabled rule in registry order; a recursive rule iterates until it creates no edges. */
-	private long applyRules(InferenceScope scope, RunMetrics metrics) {
+	private long applyRules(InferenceScope scope, RunMetrics metrics, List<RuleOutput> outputs) {
 		long total = 0;
 		for (InferenceRule rule : this.ruleRegistry.enabledInOrder()) {
+			long created = 0;
 			boolean recursive = rule.recursive();
 			long round;
 			do {
 				round = rule.apply(scope);
-				total += round;
+				created += round;
 				if (metrics != null) {
 					metrics.round();
 					metrics.query();
 				}
 			}
 			while (recursive && round > 0);
+			total += created;
+			if (outputs != null) {
+				outputs.add(new RuleOutput(rule.name(), created));
+			}
 		}
 		return total;
 	}

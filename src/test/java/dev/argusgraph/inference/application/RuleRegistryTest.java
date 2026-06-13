@@ -20,6 +20,8 @@ class RuleRegistryTest {
 			@Override public int stratum() { return stratum; }
 			@Override public boolean recursive() { return false; }
 			@Override public long apply(InferenceScope scope) { return 0; }
+			@Override public String description() { return name + " fake rule"; }
+			@Override public String cypher() { return "RETURN 0"; }
 		};
 	}
 

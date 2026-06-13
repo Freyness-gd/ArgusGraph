@@ -2,6 +2,7 @@ import { get } from "../api.js";
 import { toast } from "../toast.js";
 import { debounce } from "../utils.js";
 import { pkgLink, vulnLink } from "../nav.js";
+import { neighbourhoodGraph } from "../graph.js";
 
 function sevBadge(severity) {
   const s = severity || "NONE";
@@ -73,13 +74,14 @@ export const PackagesView = {
       m.redraw();
       return;
     }
-    this.expanded[purl] = { loading: true, deps: [], transitive: [] };
+    this.expanded[purl] = { loading: true, deps: [], transitive: [], neighbourhood: null };
     Promise.all([
       get("/graph/package-versions?purl=" + encodeURIComponent(purl)).catch(() => ({ dependencies: [] })),
       get("/inference/transitive?purls=" + encodeURIComponent(purl)).catch(() => []),
-    ]).then(([pv, hits]) => {
+      get("/graph/neighbourhood?purl=" + encodeURIComponent(purl)).catch(() => null),
+    ]).then(([pv, hits, neighbourhood]) => {
       const transitive = (hits[0] && hits[0].vulnerabilities) || [];
-      this.expanded[purl] = { loading: false, deps: pv.dependencies || [], transitive };
+      this.expanded[purl] = { loading: false, deps: pv.dependencies || [], transitive, neighbourhood };
     }).finally(m.redraw);
   },
 
@@ -118,6 +120,15 @@ export const PackagesView = {
                 m("td", t.depth),
               ]))),
             ]),
+      m(".card-label", "Neighbourhood"),
+      x.loading
+        ? m("p.muted", "Loading…")
+        : x.neighbourhood
+          ? neighbourhoodGraph(x.neighbourhood, (kind, value) => {
+              if (kind === "vuln") m.route.set("/browse", { q: value });
+              else m.route.set("/packages", { purl: value });
+            })
+          : m("p.muted", "No neighbourhood."),
     ]);
   },
 

@@ -188,6 +188,7 @@ a { color: var(--accent); }
 /* ── Exposure chain graph ── */
 .exposure-graph { width: 100%; overflow-x: auto; margin-bottom: 12px; }
 .eg-node { fill: var(--panel); stroke: var(--border); }
+.eg-center { stroke: var(--accent, #58a6ff); stroke-width: 1.5; }
 .eg-vuln { fill: #2d1418; stroke: var(--sev-critical); }
 .eg-label { fill: var(--text-bright); font: 11px var(--mono); }
 .eg-edge { stroke: var(--muted); stroke-width: 1.5; }

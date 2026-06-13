@@ -126,15 +126,16 @@ class Neo4jGraphRepository implements GraphRepository {
 	private static final String NEIGHBOURHOOD = """
 			MATCH (pv:PackageVersion {purl: $purl})
 			OPTIONAL MATCH (pv)-[:DEPENDS_ON]->(dep:PackageVersion)
+			WITH pv, [x IN collect(DISTINCT dep.purl) WHERE x IS NOT NULL] AS dependencies
 			OPTIONAL MATCH (dependent:PackageVersion)-[:DEPENDS_ON]->(pv)
+			WITH pv, dependencies,
+			     [x IN collect(DISTINCT dependent.purl) WHERE x IS NOT NULL] AS dependents
 			OPTIONAL MATCH (av:Vulnerability)-[:AFFECTS]->(pv)
+			WITH pv, dependencies, dependents,
+			     [x IN collect(DISTINCT {id: av.id, severity: av.severity}) WHERE x.id IS NOT NULL] AS vulnerabilities
 			OPTIONAL MATCH (tv:Vulnerability)-[t:TRANSITIVELY_AFFECTED]->(pv)
-			RETURN pv.purl AS center, pv.version AS version,
-			  [x IN collect(DISTINCT dep.purl) WHERE x IS NOT NULL] AS dependencies,
-			  [x IN collect(DISTINCT dependent.purl) WHERE x IS NOT NULL] AS dependents,
-			  [x IN collect(DISTINCT {id: av.id, severity: av.severity}) WHERE x.id IS NOT NULL] AS vulnerabilities,
-			  [x IN collect(DISTINCT {id: tv.id, severity: tv.severity, depth: t.depth})
-			   WHERE x.id IS NOT NULL] AS transitive
+			RETURN pv.purl AS center, pv.version AS version, dependencies, dependents, vulnerabilities,
+			       [x IN collect(DISTINCT {id: tv.id, severity: tv.severity, depth: t.depth}) WHERE x.id IS NOT NULL] AS transitive
 			""";
 
 	private static final String FETCH_STATS = """

@@ -35,8 +35,9 @@ comparison table/Chart.js bar, a latent severity-imputation card, and a Rules ca
 + debounce) merged: `GET /graph/packages` (paged list + `/packages/detail`, CVE summaries on version
 vuln-refs), `GET /inference/transitive` (HTTP read of derived edges), `js/utils.js` `debounce(fn,250)`
 + live Browse search. Full `clean check` green (103 tests). Working tree: untracked `tools/`.
-Last activity: 2026-06-13 — milestone P1 (read API + debounce) merged + pushed to origin/main. Prior
-same day: slice 4.4 (embedding severity imputation, latent E1) + pluggable rule pipeline.
+Last activity: 2026-06-13 — milestone P2 (Packages view) merged + pushed: Lookup→**Packages**, paged
+package browser + master-detail (versions → CVEs, deps, transitive exposure), debounced search. Prior
+same day: P1 (read API + debounce), slice 4.4, pluggable rule pipeline.
 
 Progress: [█████████░] ~90%
 
@@ -180,8 +181,9 @@ endpoints, integration test (disabling R2 zeroes exposure), Rules UI card. Bruno
 folder added; STATE/ROADMAP updated. Full `clean check` green (99 tests). Both slices merged to
 main (fast-forward).
 Stopped at: rule-pipeline merge on main. Working tree: untracked `tools/` only.
-Resume file: `docs/superpowers/plans/2026-06-13-p1-read-api-debounce.md` (P1, done). Next: **P2 —
-Packages view** (rename Lookup→Packages: paged list + detail w/ CVEs, debounced 250ms search).
+Resume file: `docs/superpowers/plans/2026-06-13-p2-packages-view.md` (P2, done). Next: **P3 —
+Inference rule transparency + outputs** (add `description()`+`cypher()` to `InferenceRule` →
+expandable Rules card; record per-rule edge-output counts; outputs table after run-rules).
 Milestone P1–P5 = browsable inferred knowledge + cleaner app (graph UX = drill-down + mini SVG
 neighbourhood; derived browse = global Inference panel + richer Projects); then **Phase 6** LaTeX
 report. **Push to origin/main after every phase** (user away, reviews via GitHub + Claude App).

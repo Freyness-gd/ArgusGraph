@@ -84,6 +84,44 @@ class RulePipelineIntegrationTest {
 	}
 
 	@Test
+	void transitiveEndpointReturnsExposureForDependentPurl() {
+		seedExposure();
+
+		// Derive transitive edges first.
+		assertThat(runRules().getStatusCode()).isEqualTo(HttpStatus.OK);
+
+		// a@1.0.0 depends on vuln@2.0.0 — it is the transitively-exposed package-version (depth≥1).
+		String dependentPurl = "pkg:maven/" + MARKER + "/a@1.0.0";
+		ResponseEntity<List<Map<String, Object>>> response = this.rest.exchange(
+				"/api/v1/inference/transitive?purls=" + dependentPurl, HttpMethod.GET, null,
+				new ParameterizedTypeReference<List<Map<String, Object>>>() {
+				});
+
+		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		List<Map<String, Object>> hits = response.getBody();
+		assertThat(hits).isNotNull().isNotEmpty();
+
+		// The hit for the dependent purl must contain the seeded advisory.
+		@SuppressWarnings("unchecked")
+		Map<String, Object> hit = hits.stream()
+			.filter(h -> dependentPurl.equals(h.get("purl")))
+			.findFirst()
+			.orElseThrow(() -> new AssertionError("No hit for purl: " + dependentPurl));
+
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> vulns = (List<Map<String, Object>>) hit.get("vulnerabilities");
+		assertThat(vulns).isNotEmpty();
+
+		Map<String, Object> vuln = vulns.stream()
+			.filter(v -> "ARGUS-RULEPIPE-1".equals(v.get("id")))
+			.findFirst()
+			.orElseThrow(() -> new AssertionError("Seeded vuln ARGUS-RULEPIPE-1 not in hits"));
+
+		assertThat(vuln.get("severity")).isNotNull();
+		assertThat(((Number) vuln.get("depth")).intValue()).isGreaterThanOrEqualTo(1);
+	}
+
+	@Test
 	void listsDefaultPipelineInExecutionOrderAllEnabled() {
 		List<Map<String, Object>> rules = rules();
 

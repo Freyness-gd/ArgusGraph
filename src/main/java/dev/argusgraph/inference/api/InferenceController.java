@@ -48,6 +48,12 @@ public class InferenceController {
 		return this.inference.evaluateSeverity();
 	}
 
+	@GetMapping("/transitive")
+	@Operation(summary = "Transitive vulnerability exposure for the given package-version purls (derived edges)")
+	public List<InferenceAPI.TransitiveHit> transitive(@RequestParam List<String> purls) {
+		return this.inference.transitiveExposure(purls);
+	}
+
 	@GetMapping("/rules")
 	@Operation(summary = "List the inference rule pipeline in execution order")
 	public List<InferenceAPI.RuleView> rules() {

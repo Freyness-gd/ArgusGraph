@@ -3,6 +3,7 @@ package dev.argusgraph.inference.infrastructure.persistence;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import lombok.RequiredArgsConstructor;
@@ -129,6 +130,31 @@ class Neo4jInferenceRepository implements InferenceRepository {
 										   summary: v.summary, depth: t.depth}) WHERE x.id IS NOT NULL] AS vulnerabilities
 			""";
 
+	private static final String DERIVED_FILTER = """
+			MATCH (v:Vulnerability)-[t:TRANSITIVELY_AFFECTED]->(pv:PackageVersion)
+			WHERE ($q IS NULL OR toLower(v.id) CONTAINS $q OR toLower(pv.purl) CONTAINS $q
+			       OR toLower(coalesce(v.summary,'')) CONTAINS $q)
+			""";
+
+	private static final String FIND_DERIVED = DERIVED_FILTER + """
+			RETURN v.id AS vulnId, v.severity AS severity, v.cvssScore AS cvssScore, v.summary AS summary,
+			       pv.purl AS exposedPurl, t.depth AS depth, t.inferredBy AS inferredBy
+			ORDER BY t.depth ASC, v.id ASC, pv.purl ASC
+			SKIP $skip LIMIT $limit
+			""";
+
+	private static final String COUNT_DERIVED = DERIVED_FILTER + """
+			RETURN count(t) AS total
+			""";
+
+	private static final String EXPOSURE_CHAIN = """
+			MATCH (v:Vulnerability {id: $vulnId})-[:AFFECTS]->(target:PackageVersion)
+			MATCH p = shortestPath((source:PackageVersion {purl: $purl})-[:DEPENDS_ON*1..]->(target))
+			RETURN [n IN nodes(p) | n.purl] AS path, target.purl AS affectedPurl
+			ORDER BY length(p) ASC
+			LIMIT 1
+			""";
+
 	private static final String IMPUTE_CANDIDATES = """
 			MATCH (v:Vulnerability) WHERE v.embedding IS NOT NULL AND v.cvssScore IS NULL
 			CALL (v) {
@@ -237,6 +263,48 @@ class Neo4jInferenceRepository implements InferenceRepository {
 								(String) v.get("summary"), ((Number) v.get("depth")).intValue()))
 						.toList()))
 			.toList();
+	}
+
+	@Override
+	public InferenceAPI.DerivedPage findDerived(String q, int page, int size) {
+		Map<String, Object> parameters = new HashMap<>();
+		String filter = (q == null || q.isBlank()) ? null : q.toLowerCase(Locale.ROOT);
+		parameters.put("q", filter);
+		parameters.put("skip", (long) page * size);
+		parameters.put("limit", (long) size);
+		List<InferenceAPI.DerivedEdge> items = this.neo4j.query(FIND_DERIVED)
+			.bindAll(parameters)
+			.fetch()
+			.all()
+			.stream()
+			.map(row -> new InferenceAPI.DerivedEdge((String) row.get("vulnId"), (String) row.get("severity"),
+					toDouble(row.get("cvssScore")), (String) row.get("summary"), (String) row.get("exposedPurl"),
+					((Number) row.get("depth")).intValue(), (String) row.get("inferredBy")))
+			.toList();
+		Map<String, Object> countParams = new HashMap<>();
+		countParams.put("q", filter);
+		long total = this.neo4j.query(COUNT_DERIVED)
+			.bindAll(countParams)
+			.fetchAs(Long.class)
+			.one()
+			.orElse(0L);
+		return new InferenceAPI.DerivedPage(items, page, size, total);
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public InferenceAPI.ExposureChain findChain(String vulnId, String exposedPurl) {
+		return this.neo4j.query(EXPOSURE_CHAIN)
+			.bindAll(Map.of("vulnId", vulnId, "purl", exposedPurl))
+			.fetch()
+			.one()
+			.map(row -> new InferenceAPI.ExposureChain(vulnId, (List<String>) row.get("path"),
+					(String) row.get("affectedPurl")))
+			.orElseGet(() -> new InferenceAPI.ExposureChain(vulnId, List.of(), null));
+	}
+
+	private static Double toDouble(Object value) {
+		return value == null ? null : ((Number) value).doubleValue();
 	}
 
 	private long run(String cypher, Collection<String> sourcePurls) {

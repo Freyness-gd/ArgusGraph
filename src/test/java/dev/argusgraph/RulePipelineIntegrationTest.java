@@ -122,6 +122,56 @@ class RulePipelineIntegrationTest {
 	}
 
 	@Test
+	void derivedBrowserPagesEdgesAndChainExplainsExposure() {
+		seedExposure();
+		assertThat(runRules().getStatusCode()).isEqualTo(HttpStatus.OK);
+
+		String exposedPurl = "pkg:maven/" + MARKER + "/a@1.0.0";
+		String affectedPurl = "pkg:maven/" + MARKER + "/vuln@2.0.0";
+
+		// Derived browser: page through TRANSITIVELY_AFFECTED edges filtered by the seed marker.
+		ResponseEntity<Map<String, Object>> derived = this.rest.exchange(
+				"/api/v1/inference/derived?q=rulepipe", HttpMethod.GET, null,
+				new ParameterizedTypeReference<Map<String, Object>>() {
+				});
+		assertThat(derived.getStatusCode()).isEqualTo(HttpStatus.OK);
+		Map<String, Object> page = derived.getBody();
+		assertThat(page).isNotNull();
+		assertThat(page.get("page")).isEqualTo(0);
+		assertThat(page.get("size")).isNotNull();
+		assertThat(((Number) page.get("total")).longValue()).isGreaterThanOrEqualTo(1L);
+
+		@SuppressWarnings("unchecked")
+		List<Map<String, Object>> items = (List<Map<String, Object>>) page.get("items");
+		assertThat(items).isNotNull().isNotEmpty();
+
+		Map<String, Object> edge = items.stream()
+			.filter(e -> exposedPurl.equals(e.get("exposedPurl")))
+			.findFirst()
+			.orElseThrow(() -> new AssertionError("No derived edge for exposed purl: " + exposedPurl));
+		assertThat(((Number) edge.get("depth")).intValue()).isGreaterThanOrEqualTo(1);
+		assertThat(edge.get("inferredBy")).isEqualTo("R1");
+		assertThat(edge.get("vulnId")).isEqualTo("ARGUS-RULEPIPE-1");
+
+		// Chain: shortest DEPENDS_ON path from the exposed version to the directly-affected version.
+		ResponseEntity<Map<String, Object>> chain = this.rest.exchange(
+				"/api/v1/inference/chain?vulnId=ARGUS-RULEPIPE-1&purl=" + exposedPurl, HttpMethod.GET, null,
+				new ParameterizedTypeReference<Map<String, Object>>() {
+				});
+		assertThat(chain.getStatusCode()).isEqualTo(HttpStatus.OK);
+		Map<String, Object> chainBody = chain.getBody();
+		assertThat(chainBody).isNotNull();
+
+		@SuppressWarnings("unchecked")
+		List<String> path = (List<String>) chainBody.get("path");
+		assertThat(path).isNotNull().isNotEmpty();
+		assertThat(path.get(0)).isEqualTo(exposedPurl);
+		assertThat(chainBody.get("affectedPurl")).isEqualTo(affectedPurl);
+		// The chain ends at a version the vuln directly affects — the last hop equals affectedPurl.
+		assertThat(path.get(path.size() - 1)).isEqualTo(affectedPurl);
+	}
+
+	@Test
 	void listsDefaultPipelineInExecutionOrderAllEnabled() {
 		List<Map<String, Object>> rules = rules();
 

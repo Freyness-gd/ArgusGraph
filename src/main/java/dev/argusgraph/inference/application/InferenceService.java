@@ -108,6 +108,20 @@ public class InferenceService implements InferenceAPI {
 	}
 
 	@Override
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
+	public InferenceAPI.DerivedPage findDerivedEdges(String q, int page, int size) {
+		int safePage = Math.max(0, page);
+		int safeSize = Math.min(100, Math.max(1, size));
+		return this.repository.findDerived(q, safePage, safeSize);
+	}
+
+	@Override
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
+	public InferenceAPI.ExposureChain exposureChain(String vulnId, String exposedPurl) {
+		return this.repository.findChain(vulnId, exposedPurl);
+	}
+
+	@Override
 	public ImputeResult imputeSeverity() {
 		return this.severityImputation.impute();
 	}

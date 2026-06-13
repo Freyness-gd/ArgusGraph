@@ -54,6 +54,19 @@ public class InferenceController {
 		return this.inference.transitiveExposure(purls);
 	}
 
+	@GetMapping("/derived")
+	@Operation(summary = "Page through derived exposure edges (vulnerability → transitively-affected package-version)")
+	public InferenceAPI.DerivedPage derived(@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "25") int size, @RequestParam(required = false) String q) {
+		return this.inference.findDerivedEdges(q, page, size);
+	}
+
+	@GetMapping("/chain")
+	@Operation(summary = "Shortest dependency chain explaining one transitive exposure")
+	public InferenceAPI.ExposureChain chain(@RequestParam String vulnId, @RequestParam String purl) {
+		return this.inference.exposureChain(vulnId, purl);
+	}
+
 	@GetMapping("/rules")
 	@Operation(summary = "List the inference rule pipeline in execution order")
 	public List<InferenceAPI.RuleView> rules() {

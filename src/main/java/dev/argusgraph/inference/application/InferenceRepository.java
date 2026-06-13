@@ -38,6 +38,12 @@ public interface InferenceRepository {
 	/** Transitive exposure for the given source purls, by ascending depth. */
 	List<InferenceAPI.TransitiveHit> readTransitive(Collection<String> purls);
 
+	/** Paged derived TRANSITIVELY_AFFECTED edges; optional case-insensitive filter on vuln id / exposed purl / summary. */
+	InferenceAPI.DerivedPage findDerived(String q, int page, int size);
+
+	/** Shortest DEPENDS_ON path from {@code exposedPurl} to a version the vuln AFFECTS; empty path if none. */
+	InferenceAPI.ExposureChain findChain(String vulnId, String exposedPurl);
+
 	/** One R2 candidate: a versioned package under a vuln's AFFECTS_PACKAGE ranges. */
 	record R2Candidate(String vulnId, String purl, String version, String purlType, String rangesJson) {
 	}

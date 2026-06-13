@@ -25,6 +25,12 @@ public interface InferenceAPI {
 	/** Transitive vulnerability exposure for each of the given package-version purls. */
 	List<TransitiveHit> transitiveExposure(Collection<String> purls);
 
+	/** Page through derived TRANSITIVELY_AFFECTED edges (vuln → exposed package-version). */
+	DerivedPage findDerivedEdges(String q, int page, int size);
+
+	/** The shortest dependency chain from an exposed package-version to a version the vuln directly AFFECTS. */
+	ExposureChain exposureChain(String vulnId, String exposedPurl);
+
 	/** Run severity imputation over unscored embedded vulns; returns count + duration. */
 	ImputeResult imputeSeverity();
 
@@ -73,6 +79,19 @@ public interface InferenceAPI {
 
 	/** Transitive exposure for one source purl. */
 	record TransitiveHit(String purl, List<TransitiveVuln> vulnerabilities) {
+	}
+
+	/** One page of derived edges. */
+	record DerivedPage(List<DerivedEdge> items, int page, int size, long total) {
+	}
+
+	/** A derived exposure edge: a vulnerability transitively reaching an exposed package-version. */
+	record DerivedEdge(String vulnId, String severity, Double cvssScore, String summary, String exposedPurl,
+			int depth, String inferredBy) {
+	}
+
+	/** The DEPENDS_ON path from the exposed version (first) to the directly-affected version (last). */
+	record ExposureChain(String vulnId, List<String> path, String affectedPurl) {
 	}
 
 	/** One vulnerability reaching a source purl transitively, with the shortest dependency depth. */

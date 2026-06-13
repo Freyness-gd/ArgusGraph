@@ -11,7 +11,8 @@ recursive R1 + fixpoint), 4.3 (pluggable benchmarkable engines), 4.4 (embedding 
 imputation — latent `r_𝕖`), AND the pluggable rule-pipeline slice all shipped. The engine is
 the project "heart" — a logical/Datalog-style KG reasoner (logical `r_𝕂`) with 3 switchable
 closure strategies, a runtime-editable ordered rule pipeline, AND a latent embedding-kNN
-severity engine — all surfaced in the UI. Next: **Phase 6** — evaluation + ~6-page portfolio.
+severity engine — all surfaced in the UI. **Now in progress:** a UI/graph-browsing milestone (P1–P5) — make the
+inferred knowledge browsable + the app cleaner — then **Phase 6** (evaluation + ~6-page LaTeX portfolio).
 
 ## Current Position
 
@@ -30,10 +31,12 @@ runtime-editable ordered catalog (`RuleRegistry`) — enable/disable + reorder v
 the engine runs enabled rules in order (per-rule fixpoint), behaviour-preserving for the
 default R2▶R1-base▶R1-step order. Dashboard **Inference tab** now has: engine dropdown + run +
 comparison table/Chart.js bar, a latent severity-imputation card, and a Rules card (toggle,
-▲▼ reorder, Run rules). Bruno collection has an `Inference/` folder for all endpoints. Full
-`clean check` green (99 tests). Working tree: untracked `tools/`.
-Last activity: 2026-06-13 — slice 4.4 (embedding severity imputation, latent E1) + pluggable
-rule pipeline (RuleRegistry, list/toggle/reorder + run-rules, Rules UI card), both merged to main
+▲▼ reorder, Run rules). Bruno collection has an `Inference/` folder for all endpoints. **UI/browsing milestone P1** (read API
++ debounce) merged: `GET /graph/packages` (paged list + `/packages/detail`, CVE summaries on version
+vuln-refs), `GET /inference/transitive` (HTTP read of derived edges), `js/utils.js` `debounce(fn,250)`
++ live Browse search. Full `clean check` green (103 tests). Working tree: untracked `tools/`.
+Last activity: 2026-06-13 — milestone P1 (read API + debounce) merged + pushed to origin/main. Prior
+same day: slice 4.4 (embedding severity imputation, latent E1) + pluggable rule pipeline.
 
 Progress: [█████████░] ~90%
 
@@ -177,5 +180,8 @@ endpoints, integration test (disabling R2 zeroes exposure), Rules UI card. Bruno
 folder added; STATE/ROADMAP updated. Full `clean check` green (99 tests). Both slices merged to
 main (fast-forward).
 Stopped at: rule-pipeline merge on main. Working tree: untracked `tools/` only.
-Resume file: None — next is **Phase 6** (evaluation + ~6-page portfolio). Optional: slice 4.2b
-(R3 `SAME_AS` merge + R4 withdrawn retraction → stratified-negation story).
+Resume file: `docs/superpowers/plans/2026-06-13-p1-read-api-debounce.md` (P1, done). Next: **P2 —
+Packages view** (rename Lookup→Packages: paged list + detail w/ CVEs, debounced 250ms search).
+Milestone P1–P5 = browsable inferred knowledge + cleaner app (graph UX = drill-down + mini SVG
+neighbourhood; derived browse = global Inference panel + richer Projects); then **Phase 6** LaTeX
+report. **Push to origin/main after every phase** (user away, reviews via GitHub + Claude App).

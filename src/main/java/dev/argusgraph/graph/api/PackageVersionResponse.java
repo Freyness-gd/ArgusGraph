@@ -36,11 +36,12 @@ public record PackageVersionResponse(
 	/** Incoming {@code AFFECTS} edge. */
 	@Schema(name = "VulnerabilityRef")
 	public record VulnerabilityRefResponse(@Schema(example = "CVE-2021-44228") String id,
-			@Schema(example = "CRITICAL") String severity, @Schema(example = "10.0") Double cvssScore) {
+			@Schema(example = "CRITICAL") String severity, @Schema(example = "10.0") Double cvssScore,
+			@Schema(example = "Remote code injection in Log4j") String summary) {
 
 		static VulnerabilityRefResponse from(PackageVersionDetails.AffectingVulnerability vulnerability) {
 			return new VulnerabilityRefResponse(vulnerability.id(), vulnerability.severity(),
-					vulnerability.cvssScore());
+					vulnerability.cvssScore(), vulnerability.summary());
 		}
 	}
 

@@ -75,4 +75,14 @@ public interface GraphRepository {
 	/** Packages ranked by distinct affecting vulnerabilities, descending; ties by purl ASC. */
 	List<PackageHits> topAffectedPackages(int limit);
 
+	/**
+	 * One page of packages, most-affected first then purl ASC. The optional {@code q}
+	 * ({@code null} = off) is matched case-insensitively against purl and name. Each row
+	 * carries its distinct version count and distinct affecting-vulnerability count.
+	 */
+	PackagePage findPackages(String q, int page, int size);
+
+	/** One package with all its versions and the vulnerabilities affecting each; empty when unknown. */
+	Optional<PackageDetails> findPackage(String packagePurl);
+
 }

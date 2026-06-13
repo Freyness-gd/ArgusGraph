@@ -174,6 +174,23 @@ public class GraphService implements GraphAPI {
 		return this.graph.topAffectedPackages(Math.min(Math.max(limit, 1), MAX_TOP_PACKAGES));
 	}
 
+	/** One page of the package browse table, most-affected first; blank filter means "all". */
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
+	public PackagePage findPackages(String q, int page, int size) {
+		String text = (q == null || q.isBlank()) ? null : q.trim();
+		int safePage = Math.max(page, 0);
+		int safeSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+		return this.graph.findPackages(text, safePage, safeSize);
+	}
+
+	/** One package with all its versions and the vulnerabilities affecting each. */
+	@Transactional(transactionManager = "neo4jTransactionManager", readOnly = true)
+	public PackageDetails getPackage(String purl) {
+		String packageKey = Purl.parse(purl).packageKey();
+		return this.graph.findPackage(packageKey)
+			.orElseThrow(() -> new ResourceNotFoundException(PackageDetails.class, packageKey));
+	}
+
 	/** Week truncation is ISO Monday — matches Neo4j's date.truncate('week', ...). */
 	private static LocalDate truncate(LocalDate date, String interval) {
 		return switch (interval) {

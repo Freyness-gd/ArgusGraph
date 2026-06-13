@@ -6,6 +6,7 @@ import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -24,7 +25,9 @@ import dev.argusgraph.graph.PackageVersion;
 import dev.argusgraph.graph.Vulnerability;
 import dev.argusgraph.graph.application.GraphRepository;
 import dev.argusgraph.graph.application.GraphStats;
+import dev.argusgraph.graph.application.PackageDetails;
 import dev.argusgraph.graph.application.PackageHits;
+import dev.argusgraph.graph.application.PackagePage;
 import dev.argusgraph.graph.application.PackageVersionDetails;
 import dev.argusgraph.graph.application.VulnerabilityPage;
 
@@ -114,7 +117,8 @@ class Neo4jGraphRepository implements GraphRepository {
 			       p.purl AS packagePurl,
 			       pv.version AS version,
 			       dependencies,
-			       [x IN collect(DISTINCT {id: vuln.id, severity: vuln.severity, cvssScore: vuln.cvssScore})
+			       [x IN collect(DISTINCT {id: vuln.id, severity: vuln.severity, cvssScore: vuln.cvssScore,
+			                               summary: vuln.summary})
 			        WHERE x.id IS NOT NULL] AS vulnerabilities
 			""";
 
@@ -182,6 +186,35 @@ class Neo4jGraphRepository implements GraphRepository {
 			       pv IS NOT NULL AS known,
 			       [x IN collect(DISTINCT {id: v.id, severity: v.severity, cvssScore: v.cvssScore,
 			                               summary: v.summary}) WHERE x.id IS NOT NULL] AS vulnerabilities
+			""";
+
+	private static final String PACKAGE_FILTER = """
+			MATCH (p:Package)
+			WHERE ($q IS NULL OR toLower(p.purl) CONTAINS $q OR toLower(coalesce(p.name,'')) CONTAINS $q)
+			""";
+
+	private static final String FIND_PACKAGES = PACKAGE_FILTER + """
+			OPTIONAL MATCH (p)-[:HAS_VERSION]->(pv:PackageVersion)
+			WITH p, count(DISTINCT pv) AS versionCount
+			OPTIONAL MATCH (p)-[:HAS_VERSION]->(pv2:PackageVersion)<-[:AFFECTS]-(v:Vulnerability)
+			WITH p, versionCount, count(DISTINCT v) AS vulnerabilityCount
+			RETURN p.purl AS packagePurl, p.type AS type, versionCount, vulnerabilityCount
+			ORDER BY vulnerabilityCount DESC, packagePurl ASC
+			SKIP $skip LIMIT $limit
+			""";
+
+	private static final String COUNT_PACKAGES = PACKAGE_FILTER + "RETURN count(p) AS total";
+
+	private static final String FIND_PACKAGE = """
+			MATCH (p:Package {purl: $purl})
+			OPTIONAL MATCH (p)-[:HAS_VERSION]->(pv:PackageVersion)
+			OPTIONAL MATCH (vuln:Vulnerability)-[:AFFECTS]->(pv)
+			WITH p, pv,
+			     [x IN collect(DISTINCT {id: vuln.id, severity: vuln.severity, cvssScore: vuln.cvssScore,
+			                             summary: vuln.summary})
+			      WHERE x.id IS NOT NULL] AS vulns
+			WITH p, [x IN collect({purl: pv.purl, version: pv.version, vulnerabilities: vulns}) WHERE x.purl IS NOT NULL] AS versions
+			RETURN p.purl AS packagePurl, p.type AS type, versions
 			""";
 
 	private final Neo4jClient neo4j;
@@ -355,6 +388,41 @@ class Neo4jGraphRepository implements GraphRepository {
 	}
 
 	@Override
+	public PackagePage findPackages(String q, int page, int size) {
+		Map<String, Object> parameters = new HashMap<>();
+		parameters.put("q", q == null ? null : q.toLowerCase(Locale.ROOT));
+		parameters.put("skip", (long) page * size);
+		parameters.put("limit", (long) size);
+		List<PackagePage.Item> items = this.neo4j.query(FIND_PACKAGES)
+			.bindAll(parameters)
+			.fetch()
+			.all()
+			.stream()
+			.map(row -> new PackagePage.Item((String) row.get("packagePurl"), (String) row.get("type"),
+					((Number) row.get("versionCount")).longValue(),
+					((Number) row.get("vulnerabilityCount")).longValue()))
+			.toList();
+		long total = this.neo4j.query(COUNT_PACKAGES).bindAll(parameters).fetchAs(Long.class).one().orElse(0L);
+		return new PackagePage(items, page, size, total);
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	public Optional<PackageDetails> findPackage(String packagePurl) {
+		return this.neo4j.query(FIND_PACKAGE)
+			.bindAll(Map.of("purl", packagePurl))
+			.fetch()
+			.one()
+			.map(row -> new PackageDetails((String) row.get("packagePurl"), (String) row.get("type"),
+					((List<Map<String, Object>>) row.get("versions")).stream()
+						.map(this::toVersion)
+						// Lexicographic order — good enough for browsing; semver-aware sort (1.9 vs 1.10) is deferred.
+						.sorted(Comparator.comparing(PackageDetails.Version::version,
+								Comparator.nullsLast(Comparator.naturalOrder())))
+						.toList()));
+	}
+
+	@Override
 	public long wipeAll() {
 		// CALL { ... } IN TRANSACTIONS requires an implicit (auto-commit) transaction.
 		// Neo4jClient always uses managed/explicit transactions, so the raw Driver is used here.
@@ -376,7 +444,17 @@ class Neo4jGraphRepository implements GraphRepository {
 					.toList(),
 				vulnerabilities.stream()
 					.map(v -> new PackageVersionDetails.AffectingVulnerability((String) v.get("id"),
-							(String) v.get("severity"), toDouble(v.get("cvssScore"))))
+							(String) v.get("severity"), toDouble(v.get("cvssScore")), (String) v.get("summary")))
+					.toList());
+	}
+
+	@SuppressWarnings("unchecked")
+	private PackageDetails.Version toVersion(Map<String, Object> row) {
+		List<Map<String, Object>> vulnerabilities = (List<Map<String, Object>>) row.get("vulnerabilities");
+		return new PackageDetails.Version((String) row.get("purl"), (String) row.get("version"),
+				vulnerabilities.stream()
+					.map(v -> new PackageVersionDetails.AffectingVulnerability((String) v.get("id"),
+							(String) v.get("severity"), toDouble(v.get("cvssScore")), (String) v.get("summary")))
 					.toList());
 	}
 

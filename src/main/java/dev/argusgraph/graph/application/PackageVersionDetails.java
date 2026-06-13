@@ -15,7 +15,7 @@ public record PackageVersionDetails(String purl, String packagePurl, String vers
 	}
 
 	/** Incoming {@code AFFECTS} edge. */
-	public record AffectingVulnerability(String id, String severity, Double cvssScore) {
+	public record AffectingVulnerability(String id, String severity, Double cvssScore, String summary) {
 	}
 
 }

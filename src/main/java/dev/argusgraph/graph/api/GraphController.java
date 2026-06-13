@@ -40,6 +40,20 @@ public class GraphController {
 		return PackageVersionResponse.from(this.graph.getPackageVersion(purl));
 	}
 
+	@GetMapping("/packages")
+	@Operation(summary = "Page through packages, most-affected first, with an optional text filter")
+	public PackagePageResponse listPackages(@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "25") int size, @RequestParam(required = false) String q) {
+		return PackagePageResponse.from(this.graph.findPackages(q, page, size));
+	}
+
+	@GetMapping("/packages/detail")
+	@Operation(summary = "One package with all its versions and the vulnerabilities affecting each")
+	public PackageDetailResponse getPackage(
+			@RequestParam @NotBlank(message = "purl must not be blank") String purl) {
+		return PackageDetailResponse.from(this.graph.getPackage(purl));
+	}
+
 	@GetMapping("/stats")
 	@Operation(summary = "Whole-graph counts: packages, versions, vulnerabilities, severity buckets")
 	public GraphStatsResponse getStats() {

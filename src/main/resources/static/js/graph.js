@@ -5,7 +5,7 @@
 const BOX_W = 150;
 const BOX_H = 34;
 const GAP = 46;
-const PAD = 12;
+const PAD = 20;
 
 const SEV_COLOR = {
   critical: "#f85149",
@@ -67,7 +67,7 @@ export function exposureGraph({ path, vulnId, affectedPurl, severity }) {
     const y = nodeY + BOX_H / 2;
     const mid = (x1 + x2) / 2;
     edges.push(m("line.eg-edge", { x1, y1: y, x2, y2: y, "marker-end": "url(#eg-arrow)" }));
-    edges.push(m("text.eg-edge-label", { x: mid, y: nodeY - 4, "text-anchor": "middle" }, "depends on"));
+    edges.push(m("text.eg-edge-label", { x: mid, y: nodeY - 6, "text-anchor": "middle" }, "depends on"));
   }
 
   const lastX = nodeX(path.length - 1);
